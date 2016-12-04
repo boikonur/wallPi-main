@@ -26,7 +26,6 @@ SoftwareSerial SoftSerial2(2, 3); // RX, TX
 #define interSerial3 SoftSerial2
 #define debugSerial Serial
 
-
 //PERIF 1-10 IN/OUT   OUT - YELLOW IN/ RED
 #define PERIF_OUT_PIN1 52 //1
 #define PERIF_IN_PIN1  53
@@ -131,6 +130,7 @@ void loop() {
       // Stage .. 0
       // Restart the chronometer.
       mainTimer.restart();
+      debugSerial.println("60 min are over...");
     }
   }
 
@@ -146,23 +146,26 @@ void loop() {
     case 1:
       //Monitor ButtonStart1
       //stage = 2;
+      //Turn Lights ON
       puzzle1Timer.start();
+      debugSerial.println("Game Started");
+      rezult[0]=30; //Start with max points
       break;
 
     case 2:
 
       if (puzzle1Timer.isRunning())
       {
-        if (puzzle1Timer.hasPassed(60 * 20)) //1 Hour?
+        if (puzzle1Timer.hasPassed(60 * 20)) //20 min passed?
         {
-
-
           if (puzzle1PenaltyTimer.isRunning())
           {
             if ( puzzle1PenaltyTimer.hasPassed(60)) //1min penalty
             {
-              puzzle1PenaltyTimer.restart();
               rezult[0]--;
+              debugSerial.print("One Minute Penalty. Result is:");
+              debugSerial.println(rezult[0]);
+              puzzle1PenaltyTimer.restart();
             }
           }
           else
@@ -171,25 +174,23 @@ void loop() {
           }
         }
       }
-
       //If PuzzleIn True
-      puzzle1Timer.restart();
-      //stage=3;
-      //Send Intermediate Rezults to Rpi
-      //Резултат: получават 30 от общо 100те точки от Стаята.
-      //По план, за пълни точки, тази стая трябва да се изиграе за 20 минути. За всяка минута над 20 се отнемат точки. //
+      if(digitalRead(0))
+        puzzle1Timer.restart();
+        stage=3;
+        sendResultToRPi(); //Send Intermediate Rezults to Rpi
 
-
-      break;
+    break;
 
     case 3:
 
       //Ennable ButtonStart2
+      enButtonStart(1);
       stage = 4;
       break;
 
     case 4:
-      //Monitor ButtonStart1
+      //Monitor ButtonStart2
       //Open Door2
       //stage=5;
       break;
@@ -209,6 +210,7 @@ void loop() {
     case 6:
 
       //Ennable ButtonStart3
+      enButtonStart(2);
       stage = 7;
       break;
 
@@ -260,6 +262,24 @@ sendResultToRPi();
 
 }
 
+void enButtonStart( int num)
+{
+
+}
+
+void disButtonStart( int num)
+{
+
+}
+
+void readButtonStart( int num)
+{
+
+}
+
+
+
+
 
 void sendResultToRPi() {
   sprintf(command,
@@ -277,4 +297,64 @@ void sendResultToRPi() {
   command[100] = "";
   delay(4000);
 
+}
+
+
+
+String ourCard1 = "STARTA"; //"6002705323
+String ourCard2 = "STARTB"; //6002705323
+String ourCard3 = "STARTC";  //6002705323
+String ourCard1 = "STOPA"; //"6002705323
+String ourCard2 = "STOPB"; //6002705323
+String ourCard3 = "STOPC";  //6002705323
+
+
+
+bool cardCheck()
+{
+  serialEvent2();
+
+  if (stringComplete1)
+  {
+    debugSerial.println("Incoming:");
+    debugSerial.println(cardString);
+
+    if (
+      (inputString1 == ourCard1) ||
+      (inputString1 == ourCard2) ||
+      (inputString1 == ourCard3)
+    )
+    {
+      inputString1 = "";
+       = false;
+      return true;
+    }
+    inputString1 = "";
+    stringComplete1 = false;
+    // return false;
+  }
+  return false;
+}
+
+void serialEvent2()
+{
+  while (Serial2.available())
+  {
+    // get the new byte:
+    char inChar = (char)Serial2.read();
+
+    if ((inChar == '?') ) //|| (inChar == '\n')
+    {
+      if (inputString1.length() > 0)
+      {
+        stringComplete1 = true;
+        break;
+      }
+    }
+    else
+    {
+      inputString1 += inChar;
+    }
+
+  }
 }
