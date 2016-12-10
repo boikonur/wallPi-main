@@ -9,6 +9,8 @@ Chrono mainTimer(Chrono::SECONDS ); //60min timer
 Chrono puzzle1Timer(Chrono::SECONDS ); //20min timer
 Chrono puzzle1PenaltyTimer(Chrono::SECONDS ); //1min penalty timer
 
+Chrono targetTimer(Chrono::SECONDS ); //3s
+
 
 //////COMMON DEFINES
 #define RS485Transmit    HIGH
@@ -116,6 +118,8 @@ bool door3Active = false;
 bool enableDoor[3] = {0,0,0};
 
 /////////DOJO GAME VARIABLES///////////////
+
+//STARTA\n ->>>>>>>> STOPA%12222\n
 String startGameA = "STARTA"; //"6002705323
 String startGameB = "STARTB"; //6002705323
 String startGameC = "STARTC";  //6002705323
@@ -156,8 +160,13 @@ GAME_NAME5_BG  = u'Изпитание за точност'
 #define LASER_GAME 4
 #define PISTOL_GAME 5
 
+
+int target_index=0;
+int  targetPatern[10]={4,8,1,2,5,9,0,3,7,6};
+
 unsigned int result[6] = {0, 0, 0, 0, 0, 0};
 int stage = 0;
+int prev_stage = 0;
 int laser_stage=0;
 int pistol_stage=0;
 
@@ -194,24 +203,24 @@ void setup() {
   pinMode(RELAY_PIN7, OUTPUT);
   pinMode(RELAY_PIN8, OUTPUT);
 
-  pinMode( MAIN_BUTTON_PIN1, INPUT);
+  pinMode( MAIN_BUTTON_PIN1, INPUT_PULLUP);
   pinMode( MAIN_BUTTON_LED_PIN1, OUTPUT);
-  pinMode( MAIN_BUTTON_PIN2 , INPUT);
+  pinMode( MAIN_BUTTON_PIN2 , INPUT_PULLUP);
   pinMode( MAIN_BUTTON_LED_PIN2, OUTPUT);
-  pinMode( MAIN_BUTTON_PIN3 , INPUT);
+  pinMode( MAIN_BUTTON_PIN3 , INPUT_PULLUP);
   pinMode( MAIN_BUTTON_LED_PIN3, OUTPUT);
 
   pinMode( PUZZLE_GAME_INPUT_PIN, INPUT);
 
-  pinMode(LASER_BUTTON_PIN1, INPUT);
+  pinMode(LASER_BUTTON_PIN1, INPUT_PULLUP);
   pinMode(LASER_BUTLED_PIN1, OUTPUT);
-  pinMode(LASER_BUTTON_PIN2, INPUT);
+  pinMode(LASER_BUTTON_PIN2, INPUT_PULLUP);
   pinMode(LASER_BUTLED_PIN2, OUTPUT);
-  pinMode(LASER_BUTTON_PIN3, INPUT);
+  pinMode(LASER_BUTTON_PIN3, INPUT_PULLUP);
   pinMode(LASER_BUTLED_PIN3, OUTPUT);
-  pinMode(LASER_SENSOR_PIN, INPUT);
+  pinMode(LASER_SENSOR_PIN, INPUT_PULLUP);
 
-  pinMode(PISTOL_BUTTON_PIN1, INPUT);
+  pinMode(PISTOL_BUTTON_PIN1, INPUT_PULLUP);
   pinMode(PISTOL_BUTLED_PIN1, OUTPUT);
 
   pinMode( PERIF_OUT_PIN1, OUTPUT);
@@ -296,20 +305,30 @@ void setup() {
 void loop() {
 
 doorHandle();
+handleRpiInCmd();
+gameTimer60();
 
-  if (mainTimer.isRunning()) {
-    if (mainTimer.hasPassed(60 * 60)) { //1 Hour?
 
-      unlockDoor(1); // OPEN DOOR
-      stage=0;   // Stage .. 0
-      mainTimer.restart();      // Restart the chronometer.
-      debugSerial.println("60 min are over...");
-    }
-  }
 
+if (stage != prev_stage)
+ {
+   prev_stage = stage;
+   debugSerial.print("STAGE: ");
+   debugSerial.println(stage);
+ }
 
   switch (stage)
   {
+
+    case -1:
+      result[PUZZLE_GAME]=0;
+      result[PANDA_GAME]=0;
+      result[STEPS_GAME]=0;
+      result[HIT_GAME]=0;
+      result[LASER_GAME]=0;
+      result[PISTOL_GAME]=0;
+    break;
+
     case 0:
       mainTimer.start();
 
@@ -325,7 +344,9 @@ doorHandle();
       changeMusic(1);
       puzzle1Timer.start();
       debugSerial.println("Game Started");
+      rpiSerial.print(RESET_RPI_CMD);
       result[PUZZLE_GAME]=30; //Start with max points
+
     }
       break;
 
@@ -356,6 +377,8 @@ doorHandle();
       {
         puzzle1Timer.restart();
         stage=3;
+        debugSerial.print("TIME:");
+        debugSerial.println(getElapsed60());
         debugSerial.print("Puzzle result is:");
         debugSerial.println(result[PUZZLE_GAME]);
         sendResultToRPi(); //Send Intermediate results to Rpi
@@ -365,6 +388,7 @@ doorHandle();
 
     case 3:
       enButtonStart(2);
+      debugSerial.println("Enable Room 2");
       stage = 4;
       break;
 
@@ -372,6 +396,8 @@ doorHandle();
       //Monitor ButtonStart2
       if(readButtonStart(2))
       {
+        debugSerial.println("Open Room 2");
+        turnOnLights(2);
         changeMusic(2);
         unlockDoor(2); //Open Door2
         stage=5;
@@ -380,6 +406,9 @@ doorHandle();
       break;
 
     case 5:
+
+    dojoGame();
+    //sendResultToRPi();
       //Listen Serial Events
       //Game1 Steps    //max 10 points min 3points
       //Game2 Panda    //max 10 points min 3points
@@ -394,6 +423,9 @@ doorHandle();
     case 6:
 
       enButtonStart(3);   //Ennable ButtonStart3
+        debugSerial.print("TIME:");
+        debugSerial.println(getElapsed60());
+        debugSerial.println("Enable Room 3");
       stage = 7;
       break;
 
@@ -401,19 +433,30 @@ doorHandle();
 
     if(readButtonStart(3))   //Monitor ButtonStart3
     {
+      debugSerial.println("Open Room 3");
+      turnOffLights(3);
+      turnOffLights(4);
       changeMusic(3);
       unlockDoor(3); //Open Door3
-      enableLasers(); //better start game in beginning
+
       stage=8;
     }
 
     break;
 
+case 8:
+debugSerial.println("Enabling Lasers");
+enableLasers(); //better start game in beginning
+turnOffLights(4);
+stage=8;
+break;
 
-    case 8:
+case 9:
 
   if(laserGame()){
-      stage = 9;
+      stage = 10;
+      debugSerial.print("TIME:");
+      debugSerial.println(getElapsed60());
       debugSerial.print("Laser result is:");
       debugSerial.println(result[LASER_GAME]);
       sendResultToRPi(); //Send Intermediate results to Rpi
@@ -422,59 +465,75 @@ doorHandle();
       break;
 
 
-    case 9:
-    //switc lighs to UV
-      stage = 10;
-      break;
-
-
-
     case 10:
-if(pistolGame())
-{
-  stage=11;
-  debugSerial.print("Pistol Game result is:");
-  debugSerial.println(result[PISTOL_GAME]);
-  sendResultToRPi(); //Send Intermediate results to Rpi
-}
-break;
+    //switc lighs to UV
+    debugSerial.println("Starting Target Practice");
+    turnOffLights(3);
+    turnOnLights(4);
+    stage = 11;
+
+    break;
+
+
+
     case 11:
-    //do stuff
+      if(pistolGame())
+        {
+          stage=12;
+          debugSerial.print("TIME:");
+          debugSerial.println(getElapsed60());
+          debugSerial.print("Pistol Game result is:");
+          debugSerial.println(result[PISTOL_GAME]);
+          sendResultToRPi(); //Send Intermediate results to Rpi
+        }
     break;
 
     case 12:
+      debugSerial.println("All Games are over");
+      debugSerial.print("TOTAL RESULT: ");
+      debugSerial.println( result[PUZZLE_GAME]+
+                          result[PANDA_GAME]+
+                          result[STEPS_GAME]+
+                          result[HIT_GAME]+
+                          result[LASER_GAME]+
+                          result[PISTOL_GAME]
+                        );
+      stage=13;
+    break;
+
+    case 13:
     //do stuff
     break;
 
 
 
-      case 15: //Decide to exit?
+      case 14: //Decide to exit?
         enButtonStart(1);
         enButtonStart(3);
 
         if(readButtonStart(1)==HIGH) //FINISH NO
         {
-            stage = 16;
+            stage = 15;
 
 
         }
         if(readButtonStart(3)==HIGH) //FINISH YES
         {
-            stage = 16;
+            stage = 15;
         }
 
         break;
 
 
 
-        case 16:
+        case 15:
         unlockDoor(3);
         changeMusic(0);
-          stage = 17;
+          stage = 16;
           break;
 
-          case 17:
-          break;
+        case 16:
+        break;
   }
 
 
@@ -484,13 +543,15 @@ break;
   // print the string when a newline arrives:
 
   //////////TEST comm to Rpi
-  result[PUZZLE_GAME] = random(30);
-  result[PANDA_GAME] = random(10); //min3
-  result[STEPS_GAME] = random(10); //min3
-  result[HIT_GAME] = random(10); //min3
-  result[LASER_GAME] = random(20); //min5
-  result[PISTOL_GAME] = random(20); //min5
-  sendResultToRPi();
+  // result[PUZZLE_GAME] = random(30);
+  // result[PANDA_GAME] = random(10); //min3
+  // result[STEPS_GAME] = random(10); //min3
+  // result[HIT_GAME] = random(10); //min3
+  // result[LASER_GAME] = random(20); //min5
+  // result[PISTOL_GAME] = random(20); //min5
+  // sendResultToRPi();
+
+
 
 
 
@@ -574,10 +635,90 @@ return res;
 
 int pistolGame()
 {
+
 int res=0;
+
+if(targetTimer.hasPassed(3)) //change target on 3s?
+{
+disableTarget(targetPatern[target_index]);
+  targetTimer.restart();
+  target_index++;
+}
+
+if(readTarget(targetPatern[target_index]))
+{
+  disableTarget(targetPatern[target_index]);
+    targetTimer.restart();
+    target_index++;
+    result[PISTOL_GAME]++;
+}
+
+enableTarget(targetPatern[target_index]);
+
+if(target_index >=10)
+{
+  target_index=0;
+  res=1;
+}
+
 
 return res;
 }//end  pistol Game
+
+
+void enableTarget(int num)
+{
+  switch(num)
+  {
+    case 0: digitalWrite( PERIF_OUT_PIN1, HIGH); break;
+    case 1: digitalWrite( PERIF_OUT_PIN2, HIGH); break;
+    case 2: digitalWrite( PERIF_OUT_PIN3, HIGH); break;
+    case 3: digitalWrite( PERIF_OUT_PIN4, HIGH); break;
+    case 4: digitalWrite( PERIF_OUT_PIN5, HIGH); break;
+    case 5: digitalWrite( PERIF_OUT_PIN6, HIGH); break;
+    case 6: digitalWrite( PERIF_OUT_PIN7, HIGH); break;
+    case 7: digitalWrite( PERIF_OUT_PIN8, HIGH); break;
+    case 8: digitalWrite( PERIF_OUT_PIN9, HIGH); break;
+    case 9: digitalWrite( PERIF_OUT_PIN10, HIGH); break;
+    default: debugSerial.println("Error. No such target.");
+  }
+}
+
+void disableTarget(int num)
+{
+  switch(num)
+  {
+    case 0: digitalWrite( PERIF_OUT_PIN1, LOW); break;
+    case 1: digitalWrite( PERIF_OUT_PIN2, LOW); break;
+    case 2: digitalWrite( PERIF_OUT_PIN3, LOW); break;
+    case 3: digitalWrite( PERIF_OUT_PIN4, LOW); break;
+    case 4: digitalWrite( PERIF_OUT_PIN5, LOW); break;
+    case 5: digitalWrite( PERIF_OUT_PIN6, LOW); break;
+    case 6: digitalWrite( PERIF_OUT_PIN7, LOW); break;
+    case 7: digitalWrite( PERIF_OUT_PIN8, LOW); break;
+    case 8: digitalWrite( PERIF_OUT_PIN9, LOW); break;
+    case 9: digitalWrite( PERIF_OUT_PIN10, LOW); break;
+    default: debugSerial.println("Error. No such target.");
+  }
+}
+
+bool readTarget(int num)
+{
+  switch(num)
+  {
+    case 0: return digitalRead(PERIF_OUT_PIN1); break;
+    case 1: return digitalRead(PERIF_OUT_PIN2); break;
+    case 2: return digitalRead(PERIF_OUT_PIN3); break;
+    case 3: return digitalRead(PERIF_OUT_PIN4); break;
+    case 4: return digitalRead(PERIF_OUT_PIN5); break;
+    case 5: return digitalRead(PERIF_OUT_PIN6); break;
+    case 6: return digitalRead(PERIF_OUT_PIN7); break;
+    case 7: return digitalRead(PERIF_OUT_PIN8); break;
+    case 8: return digitalRead(PERIF_OUT_PIN9); break;
+    case 9: return digitalRead(PERIF_OUT_PIN10); break;
+    default: debugSerial.println("Error. No such target.");
+  }
+}
 
 void enButtonStart( int num)
 {
@@ -691,10 +832,10 @@ void lockDoor(int num)
 void turnOnLights(int num)
 {
   switch(num){
-    case 1:   digitalWrite(MAIN_BUTTON_LED_PIN2, HIGH); break;
-    case 2:   digitalWrite(MAIN_BUTTON_LED_PIN2, HIGH); break;
-    case 3:   digitalWrite(MAIN_BUTTON_LED_PIN2, HIGH); break;
-    case 4:   digitalWrite(MAIN_BUTTON_LED_PIN2, HIGH); break;
+    case 1:   digitalWrite(LIGHTS1_PIN, HIGH); break;
+    case 2:   digitalWrite(LIGHTS2_PIN, HIGH); break;
+    case 3:   digitalWrite(LIGHTS3_PIN, HIGH); break;
+    case 4:   digitalWrite(LIGHTS_UV_PIN, HIGH); break;
     default: debugSerial.println("No Such Light");
   }
 
@@ -703,10 +844,10 @@ void turnOnLights(int num)
 void turnOffLights(int num)
 {
   switch(num){
-    case 1:   digitalWrite(MAIN_BUTTON_LED_PIN2, LOW); break;
-    case 2:   digitalWrite(MAIN_BUTTON_LED_PIN2, LOW); break;
-    case 3:   digitalWrite(MAIN_BUTTON_LED_PIN2, LOW); break;
-    case 4:   digitalWrite(MAIN_BUTTON_LED_PIN2, LOW); break;
+    case 1:   digitalWrite(LIGHTS1_PIN, LOW); break;
+    case 2:   digitalWrite(LIGHTS2_PIN, LOW); break;
+    case 3:   digitalWrite(LIGHTS3_PIN, LOW); break;
+    case 4:   digitalWrite(LIGHTS_UV_PIN, LOW); break;
     default: debugSerial.println("No Such Light");
   }
 
@@ -742,10 +883,12 @@ void changeMusic(int  track)
   }
 }
 
-unsigned long game_reset_timer1 = 0;
-unsigned long game_reset_timer2 = 0;
+unsigned long hidden_combination_timer1 = 0;
+unsigned long hidden_combination_timer2 = 0;
+unsigned long hidden_combination_timer3 = 0;
 
-#define RPI_RESET_TIME 15000
+
+#define HIDDEN_HOLD_TIME 15000
 
 
 
@@ -753,38 +896,59 @@ void hiddenButtonControl()
 {
   unsigned long cur_time = millis();
 
-  if (readButtonStart(1) == PRESSED && readButtonStart(3) == PRESSED) // GOLD 1 and 3 to turnoff RPI
+// HOLD 1 and 3 to turnoff RPI
+  if (readButtonStart(1) == PRESSED && readButtonStart(2) == RELEASED && readButtonStart(3) == PRESSED)
   {
-    if ((unsigned long)(cur_time - game_reset_timer1) >= RPI_RESET_TIME)
+    if ((unsigned long)(cur_time - hidden_combination_timer1) >= HIDDEN_HOLD_TIME)
     {
-      game_reset_timer1 = cur_time;
+      hidden_combination_timer1 = cur_time;
       turnOffRpi();
-      //fx for off sound
     }
   }
   else
   {
-    game_reset_timer1 = cur_time;
+    hidden_combination_timer1 = cur_time;
   }
 
-  if (readButtonStart(1) == PRESSED && readButtonStart(2) == PRESSED) // GOLD 1 and 2 to change language
+// HOLD 1 and 2 to change language
+  if (readButtonStart(1) == PRESSED && readButtonStart(2) == PRESSED && readButtonStart(3) == RELEASED)
   {
-    if ((unsigned long)(cur_time - game_reset_timer1) >= RPI_RESET_TIME)
+    if ((unsigned long)(cur_time - hidden_combination_timer2) >= HIDDEN_HOLD_TIME)
     {
-      game_reset_timer1 = cur_time;
+      hidden_combination_timer2 = cur_time;
       changeRpiLang();
-      //fx for off sound
     }
   }
   else
   {
-    game_reset_timer1 = cur_time;
+    hidden_combination_timer2 = cur_time;
   }
+
+  // HOLD 1 and 2 to change language
+  if (readButtonStart(1) == RELEASED && readButtonStart(2) == PRESSED && readButtonStart(3) == PRESSED)
+    {
+      if ((unsigned long)(cur_time - hidden_combination_timer3) >= HIDDEN_HOLD_TIME)
+      {
+        hidden_combination_timer3 = cur_time;
+        //TODO some hidden function
+      }
+    }
+    else
+    {
+      hidden_combination_timer3 = cur_time;
+    }
+
+
 }
 
 void turnOffRpi()
 {
+    debugSerial.println("Turning OFF Raspberry");
     rpiSerial.print(OFF_RPI_CMD);
+    turnOffLights(1);
+    turnOffLights(2);
+    turnOffLights(3);
+    turnOffLights(4);
 }
 
 void changeRpiLang()
@@ -818,35 +982,33 @@ bool dojoGame()
 
   if (inStrCompleteInterSerial1)
   {
-    debugSerial.println("Incoming:");
     debugSerial.println(inStrInterSerial1);
 
-    if  (inStrInterSerial1 == startGameA)
+    if  (inStrInterSerial1 == startGameA )
     {
         debugSerial.println("Starting Game A");
     }
-
     if  (inStrInterSerial1 == startGameB)
     {
           debugSerial.println("Starting Game B");
     }
 
-
-
-    if  (inStrInterSerial1 == stopGameA)
-    {
-          debugSerial.println("Stopping Game A");
+    if (inStrInterSerial1.startsWith(stopGameA)) {
+          debugSerial.print("Stopping Game A. ");
+          debugSerial.print("Result is: ");
+          result[HIT_GAME]= inStrInterSerial1.substring(6).toInt();
+          debugSerial.println( result[HIT_GAME]);
     }
 
-    if  (inStrInterSerial1 == stopGameB)
-    {
-          debugSerial.println("Stopping Game B");
+    if (inStrInterSerial1.startsWith(stopGameB)) {
+            debugSerial.print("Stopping Game B. ");
+            debugSerial.print("Result is: ");
+            result[PANDA_GAME]=  inStrInterSerial1.substring(6).toInt();
+            debugSerial.println(result[PANDA_GAME] );
     }
-
 
     inStrInterSerial1 = "";
     inStrCompleteInterSerial1 = false;
-    // return false;
   }
 
   if (inStrCompleteInterSerial2)
@@ -857,36 +1019,53 @@ bool dojoGame()
           debugSerial.println("Starting Game C");
     }
 
-        if  (inStrInterSerial2 == stopGameC)
-        {
-              debugSerial.println("Stopping Game C");
-        }
+    if (inStrInterSerial2.startsWith(stopGameC)) {
+          debugSerial.print("Stopping Game C. ");
+          debugSerial.print("Result is: ");
+          result[STEPS_GAME]= inStrInterSerial2.substring(6).toInt();
+          debugSerial.println(result[STEPS_GAME]);
+    }
     inStrInterSerial2 = "";
     inStrCompleteInterSerial2 = false;
     // return false;
 }
 
-
-
   return false;
 }
 
-void handleRpiInCmd(){
-
+void handleRpiInCmd()
+{
   if (inStrCompleteRpiSerial)
   {
     debugSerial.print("RPi:");
     debugSerial.println(inStrRpiSerial);
-        // if  (inStrRpiSerial == stopGameC)
-        // {
-        //       debugSerial.println("Executing Something?");
-        // }
+        // if(inStrRpiSerial == stopGameC)
+        //      debugSerial.println("Executing Something?");
     inStrRpiSerial = "";
     inStrCompleteRpiSerial = false;
+  }
 }
 
 
+unsigned long getElapsed60(){
 
+  return mainTimer.elapsed();
+}
+
+void gameTimer60()
+{
+  if (mainTimer.isRunning())
+   {
+
+    if (mainTimer.hasPassed(60 * 60)) //1 Hour?
+     {
+      unlockDoor(1); // OPEN DOOR
+      stage=0;   // Stage .. 0
+      mainTimer.restart();      // Restart the chronometer.
+      debugSerial.println("60 min are over...");
+    }
+  }
+}
 
 
 void serialEvent1() //RPi Serial
@@ -913,14 +1092,14 @@ void serialEvent1() //RPi Serial
 }
 
 
-void serialEvent2() //interSerial1
+void serialEvent2() //interSerial1    Puzzle A and puzzle B
 {
   while (interSerial1.available())
   {
     // get the new byte:
     char inChar = (char)interSerial1.read();
 
-    if ((inChar == '\n') )
+    if (inChar == '\n')
     {
       if (inStrInterSerial1.length() > 0)
       {
@@ -936,14 +1115,14 @@ void serialEvent2() //interSerial1
   }
 }
 
-void serialEvent3() //interSerial2
+void serialEvent3() //interSerial2  puzzle C
 {
   while (interSerial2.available())
   {
     // get the new byte:
     char inChar = (char)interSerial2.read();
 
-    if ((inChar == '\n') )
+    if (inChar == '\n')
     {
       if (inStrInterSerial2.length() > 0)
       {
