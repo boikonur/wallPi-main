@@ -9,7 +9,7 @@ Chrono mainTimer(Chrono::SECONDS ); //60min timer
 Chrono puzzle1Timer(Chrono::SECONDS ); //20min timer
 Chrono puzzle1PenaltyTimer(Chrono::SECONDS ); //1min penalty timer
 
-Chrono targetTimer(Chrono::SECONDS ); //3s
+Chrono targetTimer(Chrono::MILLIS ); //3s
 
 
 //////COMMON DEFINES
@@ -24,8 +24,8 @@ SoftwareSerial SoftSerial2(2, 3); // RX, TX
 #define coFxSerial SoftSerial1
 #define rpiSerial Serial1
 #define interSerial1 Serial2
-#define interSerial2 Serial2
-#define interSerial3 Serial3 //SoftSerial2
+#define interSerial2 Serial3
+//#define interSerial3  //SoftSerial2
 #define debugSerial Serial
 
 #define InterConnect1dir_pin 7
@@ -62,29 +62,29 @@ SoftwareSerial SoftSerial2(2, 3); // RX, TX
 #define LASER_SENSOR_PIN 33
 #define LASER_ENABLE_PIN  RELAY_PIN5
 
-#define PISTOL_BUTTON_PIN1 31 //TODO
-#define PISTOL_BUTLED_PIN1 29 //TODO
+#define PISTOL_BUTTON_PIN1 31
+#define PISTOL_BUTLED_PIN1 29
 //PERIF 1-10 IN/OUT   OUT - YELLOW IN/ RED
-#define PERIF_OUT_PIN1 53 //1
-#define PERIF_IN_PIN1  52
-#define PERIF_OUT_PIN2 51 //2
-#define PERIF_IN_PIN2  50
-#define PERIF_OUT_PIN3 49 //3
-#define PERIF_IN_PIN3  48
-#define PERIF_OUT_PIN4 47 //4
-#define PERIF_IN_PIN54 46
-#define PERIF_OUT_PIN5 45 //5
-#define PERIF_IN_PIN5  44
-#define PERIF_OUT_PIN6 43 //6
-#define PERIF_IN_PIN6  42
-#define PERIF_OUT_PIN7 41 //7
-#define PERIF_IN_PIN7  40
-#define PERIF_OUT_PIN8 39 //8
-#define PERIF_IN_PIN8  38
-#define PERIF_OUT_PIN9 37 //9
-#define PERIF_IN_PIN9  36
-#define PERIF_OUT_PIN10 35  //10
-#define PERIF_IN_PIN10  34
+#define PERIF_OUT_PIN1 52 //1
+#define PERIF_IN_PIN1  53
+#define PERIF_OUT_PIN2 50 //2
+#define PERIF_IN_PIN2  51
+#define PERIF_OUT_PIN3 48 //3
+#define PERIF_IN_PIN3  49
+#define PERIF_OUT_PIN4 46 //4
+#define PERIF_IN_PIN4 47
+#define PERIF_OUT_PIN5 44 //5
+#define PERIF_IN_PIN5  45
+#define PERIF_OUT_PIN6 42 //6
+#define PERIF_IN_PIN6  43
+#define PERIF_OUT_PIN7 40 //7
+#define PERIF_IN_PIN7  41
+#define PERIF_OUT_PIN8 38 //8
+#define PERIF_IN_PIN8  39
+#define PERIF_OUT_PIN9 36 //9
+#define PERIF_IN_PIN9  37
+#define PERIF_OUT_PIN10 34  //10
+#define PERIF_IN_PIN10  35
 
 
 
@@ -127,6 +127,10 @@ String stopGameA = "STOPA"; //"6002705323
 String stopGameB = "STOPB"; //6002705323
 String stopGameC = "STOPC";  //6002705323
 
+bool startedGameA=false;
+bool startedGameB=false;
+bool startedGameC=false;
+
 String inStrRpiSerial = "";
 boolean inStrCompleteRpiSerial = false;
 String inStrInterSerial1 = "";
@@ -144,6 +148,12 @@ boolean inStrCompleteInterSerial2 = false;
 #define REZ_RPI_CMD "rez,%d,%d,%d,%d,%d,%d\n" //6 games
 
 /////// MAIN GLOBAL VARIABLES/////////////
+unsigned long hidden_combination_timer1 = 0;
+unsigned long hidden_combination_timer2 = 0;
+unsigned long hidden_combination_timer3 = 0;
+
+
+#define HIDDEN_HOLD_TIME 15000
 
 /*
 GAME_NAME0_BG = u'Изпитание за наблюдателност'
@@ -154,7 +164,7 @@ GAME_NAME4_BG  = u'Изпитание за ловкост'
 GAME_NAME5_BG  = u'Изпитание за точност'
 */
 #define PUZZLE_GAME 0
-#define HIT_GAME 2
+#define HIT_GAME 1
 #define STEPS_GAME 2
 #define PANDA_GAME 3
 #define LASER_GAME 4
@@ -163,9 +173,10 @@ GAME_NAME5_BG  = u'Изпитание за точност'
 
 int target_index=0;
 int  targetPatern[10]={4,8,1,2,5,9,0,3,7,6};
+//int  targetPatern[10]={1,8,1,2,5,1,0,1,7,6};
 
 unsigned int result[6] = {0, 0, 0, 0, 0, 0};
-int stage = 0;
+int stage = 10; //
 int prev_stage = 0;
 int laser_stage=0;
 int pistol_stage=0;
@@ -178,7 +189,7 @@ void setup() {
   rpiSerial.begin(9600);
   interSerial1.begin(9600);
   interSerial2.begin(9600);
-  //interSerial3.begin(9600);
+
   debugSerial.begin(9600);
 
   //   while (!debugSerial) {
@@ -224,25 +235,25 @@ void setup() {
   pinMode(PISTOL_BUTLED_PIN1, OUTPUT);
 
   pinMode( PERIF_OUT_PIN1, OUTPUT);
-  pinMode( PERIF_IN_PIN1, INPUT);
+  pinMode( PERIF_IN_PIN1, INPUT_PULLUP);
   pinMode( PERIF_OUT_PIN2, OUTPUT);
-  pinMode( PERIF_IN_PIN2, INPUT);
+  pinMode( PERIF_IN_PIN2, INPUT_PULLUP);
   pinMode( PERIF_OUT_PIN3, OUTPUT);
-  pinMode( PERIF_IN_PIN3, INPUT);
+  pinMode( PERIF_IN_PIN3, INPUT_PULLUP);
   pinMode( PERIF_OUT_PIN4, OUTPUT);
-  pinMode( PERIF_IN_PIN54, INPUT);
+  pinMode( PERIF_IN_PIN4, INPUT_PULLUP);
   pinMode( PERIF_OUT_PIN5, OUTPUT);
-  pinMode( PERIF_IN_PIN5 , INPUT);
+  pinMode( PERIF_IN_PIN5 , INPUT_PULLUP);
   pinMode( PERIF_OUT_PIN6, OUTPUT);
-  pinMode( PERIF_IN_PIN6, INPUT);
+  pinMode( PERIF_IN_PIN6, INPUT_PULLUP);
   pinMode( PERIF_OUT_PIN7, OUTPUT);
-  pinMode( PERIF_IN_PIN7 , INPUT);
+  pinMode( PERIF_IN_PIN7 , INPUT_PULLUP);
   pinMode( PERIF_OUT_PIN8, OUTPUT);
-  pinMode( PERIF_IN_PIN8 , INPUT);
+  pinMode( PERIF_IN_PIN8 , INPUT_PULLUP);
   pinMode( PERIF_OUT_PIN9, OUTPUT);
-  pinMode( PERIF_IN_PIN9 , INPUT);
+  pinMode( PERIF_IN_PIN9 , INPUT_PULLUP);
   pinMode( PERIF_OUT_PIN10, OUTPUT);
-  pinMode( PERIF_IN_PIN10 , INPUT);
+  pinMode( PERIF_IN_PIN10 , INPUT_PULLUP);
 
   pinMode( EXTRA_1_IN , INPUT);
   pinMode( EXTRA_1_OUT , OUTPUT);
@@ -295,6 +306,7 @@ void setup() {
 
   debugSerial.println("Init Complete");
 
+  changeMusic(0);
 }
 
 
@@ -377,8 +389,9 @@ if (stage != prev_stage)
       {
         puzzle1Timer.restart();
         stage=3;
-        debugSerial.print("TIME:");
-        debugSerial.println(getElapsed60());
+        debugSerial.print("TIME: ");
+        debugSerial.print(getElapsed60());
+        debugSerial.println(" seconds");
         debugSerial.print("Puzzle result is:");
         debugSerial.println(result[PUZZLE_GAME]);
         sendResultToRPi(); //Send Intermediate results to Rpi
@@ -400,6 +413,10 @@ if (stage != prev_stage)
         turnOnLights(2);
         changeMusic(2);
         unlockDoor(2); //Open Door2
+
+        interSerial1.flush();
+        interSerial2.flush();
+
         stage=5;
       }
 
@@ -415,16 +432,22 @@ if (stage != prev_stage)
       //Game3 Hit    //max 10 points min 3points
 
 
-      //Send Intermediate results to Rpi
-      //if finish once?
-      //stage = 6;
-      break;
+      if(result[PANDA_GAME] >3 &&
+         result[STEPS_GAME] >3 &&
+         result[HIT_GAME] >3)
+         {
+          sendResultToRPi();
+          debugSerial.println("Room 2 Finished");
+          stage = 6;
+      }
+    break;
 
     case 6:
 
       enButtonStart(3);   //Ennable ButtonStart3
-        debugSerial.print("TIME:");
-        debugSerial.println(getElapsed60());
+        debugSerial.print("TIME: ");
+        debugSerial.print(getElapsed60());
+        debugSerial.println(" seconds");
         debugSerial.println("Enable Room 3");
       stage = 7;
       break;
@@ -448,15 +471,17 @@ case 8:
 debugSerial.println("Enabling Lasers");
 enableLasers(); //better start game in beginning
 turnOffLights(4);
-stage=8;
+stage=9;
+
 break;
 
 case 9:
 
   if(laserGame()){
       stage = 10;
-      debugSerial.print("TIME:");
-      debugSerial.println(getElapsed60());
+      debugSerial.print("TIME: ");
+      debugSerial.print(getElapsed60());
+      debugSerial.println(" seconds");
       debugSerial.print("Laser result is:");
       debugSerial.println(result[LASER_GAME]);
       sendResultToRPi(); //Send Intermediate results to Rpi
@@ -470,21 +495,25 @@ case 9:
     debugSerial.println("Starting Target Practice");
     turnOffLights(3);
     turnOnLights(4);
+    changeMusic(4);
     stage = 11;
 
     break;
-
-
 
     case 11:
       if(pistolGame())
         {
           stage=12;
-          debugSerial.print("TIME:");
-          debugSerial.println(getElapsed60());
-          debugSerial.print("Pistol Game result is:");
+          debugSerial.print("TIME: ");
+          debugSerial.print(getElapsed60());
+          debugSerial.println(" seconds");
+          debugSerial.print("Pistol Game result is: ");
           debugSerial.println(result[PISTOL_GAME]);
+          turnOnLights(3);
+          turnOffLights(4);
+          changeMusic(1);
           sendResultToRPi(); //Send Intermediate results to Rpi
+
         }
     break;
 
@@ -536,12 +565,6 @@ case 9:
         break;
   }
 
-
-  //CHECK 60min TIMER
-  // if >60min open door , reset game
-
-  // print the string when a newline arrives:
-
   //////////TEST comm to Rpi
   // result[PUZZLE_GAME] = random(30);
   // result[PANDA_GAME] = random(10); //min3
@@ -551,79 +574,89 @@ case 9:
   // result[PISTOL_GAME] = random(20); //min5
   // sendResultToRPi();
 
-
-
-
-
-  //if (interSerial1.available()){
-  //  debugSerial.write(Serial3.read());
-  //}
-  //
-  //if (interSerial2.available()){
-  //  debugSerial.write(Serial3.read());
-  //}
-  //
-  //if (interSerial3.available()){
-  //  debugSerial.write(Serial3.read());
-  //}
-
-}
+} // END LOOP
 
 
 int laserGame()
 {
 int res=0;
 
+bool but_state2=false;
+bool but_state3=false;
 
  switch(laser_stage)
  {
     case 0:
+    result[LASER_GAME]=10;
     disableLasers();
+    digitalWrite(LASER_BUTLED_PIN1, HIGH);
+    laser_stage=1;
+    break;
 
-    if(digitalRead(LASER_BUTLED_PIN1)==PRESSED)
+    case 1:
+    if(digitalRead(LASER_BUTTON_PIN1)==PRESSED)
     {
       digitalWrite(LASER_BUTLED_PIN1, LOW);
-      laser_stage=1;
-      enableLasers();
       digitalWrite(LASER_BUTLED_PIN2, HIGH);
       digitalWrite(LASER_BUTLED_PIN3, HIGH);
+      enableLasers();
+
+      laser_stage=2;
     }
     break;
-    case 1:
 
-  if(digitalRead(LASER_BUTLED_PIN2)==PRESSED)
-  {
-     digitalWrite(LASER_BUTLED_PIN2, LOW);
-  }else
-    digitalWrite(LASER_BUTLED_PIN2, HIGH);
+    case 2:
+      if(digitalRead(LASER_BUTTON_PIN2)==PRESSED)
+      {
+        but_state2=true;
+         digitalWrite(LASER_BUTLED_PIN2, LOW);
+      }
+      else
+      {
+        but_state2=false;
+        digitalWrite(LASER_BUTLED_PIN2, HIGH);
+      }
 
-  if(digitalRead(LASER_BUTLED_PIN3)==PRESSED)
-  {
-     digitalWrite(LASER_BUTLED_PIN3, LOW);
-  }else
-    digitalWrite(LASER_BUTLED_PIN3, HIGH);
 
-    if(digitalRead(LASER_SENSOR_PIN)==RELEASED)
-    {
-       debugSerial.println("Laser is crossed");
-       result[4]--;
+      if(digitalRead(LASER_BUTTON_PIN3)==PRESSED)
+      {
+        but_state3=true;
+         digitalWrite(LASER_BUTLED_PIN3, LOW);
+      }
+      else
+      {
+        but_state3=false;
+        digitalWrite(LASER_BUTLED_PIN3, HIGH);
+      }
+
+
+        if(digitalRead(LASER_SENSOR_PIN)==LOW) ///SENSOR closes circuit when no light
+        {
+           debugSerial.println("Laser is crossed");
+           result[LASER_GAME]--;
 
        delay(100);
-        if (result[6] < 5)
+        if (result[LASER_GAME] < 5)
         {
           laser_stage=0;
+          digitalWrite(LASER_BUTLED_PIN1, HIGH);
+          digitalWrite(LASER_BUTLED_PIN2, LOW);
+          digitalWrite(LASER_BUTLED_PIN3, LOW);
            return 0;
+        }else
+        if(but_state2==true && but_state2==true)
+        {
+          stage=3;
         }
-    //
-    //
-    }
 
 
+      }
     break;
-case 2:
-
+case 3:
+  disableLasers();
+  res=1;
  break;
-case 3: break;
+
 
  }
 
@@ -635,32 +668,58 @@ return res;
 
 int pistolGame()
 {
-
 int res=0;
 
-if(targetTimer.hasPassed(3)) //change target on 3s?
+
+switch(pistol_stage)
 {
-disableTarget(targetPatern[target_index]);
-  targetTimer.restart();
-  target_index++;
+
+        case 0:
+        target_index=0;
+        pistol_stage=1;
+        targetTimer.start();
+        break;
+
+        case 1:
+        enableTarget(targetPatern[target_index]);
+        debugSerial.print("Target: ");
+        debugSerial.print(target_index);
+        pistol_stage=2;
+        break;
+
+        case 2:
+        if(targetTimer.hasPassed(3000)) //change target on 1,4s?
+        {
+          debugSerial.println(" MISSED");
+          disableTarget(targetPatern[target_index]);
+
+          targetTimer.restart();
+          target_index++;
+          pistol_stage=1;
+        }else
+
+        if(readTarget(targetPatern[target_index]))
+        {
+          debugSerial.println(" HIT");
+          disableTarget(targetPatern[target_index]);
+            targetTimer.restart();
+            target_index++;
+            result[PISTOL_GAME]++;
+            pistol_stage=1;
+        }
+
+        if(target_index >=10)
+        {
+          pistol_stage=3; // end of GAME
+        }
+
+        break;
+
+        case 3:
+        target_index=0;
+        res=1;
+        break;
 }
-
-if(readTarget(targetPatern[target_index]))
-{
-  disableTarget(targetPatern[target_index]);
-    targetTimer.restart();
-    target_index++;
-    result[PISTOL_GAME]++;
-}
-
-enableTarget(targetPatern[target_index]);
-
-if(target_index >=10)
-{
-  target_index=0;
-  res=1;
-}
-
 
 return res;
 }//end  pistol Game
@@ -706,16 +765,16 @@ bool readTarget(int num)
 {
   switch(num)
   {
-    case 0: return digitalRead(PERIF_OUT_PIN1); break;
-    case 1: return digitalRead(PERIF_OUT_PIN2); break;
-    case 2: return digitalRead(PERIF_OUT_PIN3); break;
-    case 3: return digitalRead(PERIF_OUT_PIN4); break;
-    case 4: return digitalRead(PERIF_OUT_PIN5); break;
-    case 5: return digitalRead(PERIF_OUT_PIN6); break;
-    case 6: return digitalRead(PERIF_OUT_PIN7); break;
-    case 7: return digitalRead(PERIF_OUT_PIN8); break;
-    case 8: return digitalRead(PERIF_OUT_PIN9); break;
-    case 9: return digitalRead(PERIF_OUT_PIN10); break;
+    case 0: return (digitalRead(PERIF_IN_PIN1) == LOW); break;
+    case 1: return (digitalRead(PERIF_IN_PIN2)== LOW); break;
+    case 2: return (digitalRead(PERIF_IN_PIN3)== LOW); break;
+    case 3: return (digitalRead(PERIF_IN_PIN4)== LOW); break;
+    case 4: return (digitalRead(PERIF_IN_PIN5)== LOW); break;
+    case 5: return (digitalRead(PERIF_IN_PIN6)== LOW); break;
+    case 6: return (digitalRead(PERIF_IN_PIN7)== LOW); break;
+    case 7: return (digitalRead(PERIF_IN_PIN8)== LOW); break;
+    case 8: return (digitalRead(PERIF_IN_PIN9)== LOW); break;
+    case 9: return (digitalRead(PERIF_IN_PIN10)== LOW); break;
     default: debugSerial.println("Error. No such target.");
   }
 }
@@ -883,12 +942,6 @@ void changeMusic(int  track)
   }
 }
 
-unsigned long hidden_combination_timer1 = 0;
-unsigned long hidden_combination_timer2 = 0;
-unsigned long hidden_combination_timer3 = 0;
-
-
-#define HIDDEN_HOLD_TIME 15000
 
 
 
@@ -982,29 +1035,39 @@ bool dojoGame()
 
   if (inStrCompleteInterSerial1)
   {
-    debugSerial.println(inStrInterSerial1);
-
-    if  (inStrInterSerial1 == startGameA )
+      if  (inStrInterSerial1 == startGameA )
     {
         debugSerial.println("Starting Game A");
+        startedGameA=true;
     }
     if  (inStrInterSerial1 == startGameB)
     {
           debugSerial.println("Starting Game B");
+          startedGameB=true;
     }
 
-    if (inStrInterSerial1.startsWith(stopGameA)) {
-          debugSerial.print("Stopping Game A. ");
-          debugSerial.print("Result is: ");
-          result[HIT_GAME]= inStrInterSerial1.substring(6).toInt();
-          debugSerial.println( result[HIT_GAME]);
+    if (inStrInterSerial1.startsWith(stopGameA))
+     {
+      if(startedGameA==true)
+      {
+        startedGameA=false;
+        debugSerial.print("Stopping Game A. ");
+        debugSerial.print("Result is: ");
+        result[HIT_GAME]= inStrInterSerial1.substring(6).toInt();
+        debugSerial.println( result[HIT_GAME]);
+      }
     }
 
-    if (inStrInterSerial1.startsWith(stopGameB)) {
-            debugSerial.print("Stopping Game B. ");
-            debugSerial.print("Result is: ");
-            result[PANDA_GAME]=  inStrInterSerial1.substring(6).toInt();
-            debugSerial.println(result[PANDA_GAME] );
+    if (inStrInterSerial1.startsWith(stopGameB))
+     {
+      if(startedGameB==true)
+      {
+        startedGameB=false;
+        debugSerial.print("Stopping Game B. ");
+        debugSerial.print("Result is: ");
+        result[PANDA_GAME]=  inStrInterSerial1.substring(6).toInt();
+        debugSerial.println(result[PANDA_GAME] );
+      }
     }
 
     inStrInterSerial1 = "";
@@ -1013,21 +1076,26 @@ bool dojoGame()
 
   if (inStrCompleteInterSerial2)
   {
-
-    if  (inStrInterSerial2 == startGameC)
+    if(inStrInterSerial2 == startGameC)
     {
-          debugSerial.println("Starting Game C");
+        debugSerial.println("Starting Game C");
+        startedGameC=true;
     }
 
-    if (inStrInterSerial2.startsWith(stopGameC)) {
-          debugSerial.print("Stopping Game C. ");
-          debugSerial.print("Result is: ");
-          result[STEPS_GAME]= inStrInterSerial2.substring(6).toInt();
-          debugSerial.println(result[STEPS_GAME]);
+    if (inStrInterSerial2.startsWith(stopGameC))
+     {
+       if(startedGameC==true){
+         startedGameC=false;
+         debugSerial.print("Stopping Game C. ");
+         debugSerial.print("Result is: ");
+         result[STEPS_GAME]= inStrInterSerial2.substring(6).toInt();
+         debugSerial.println(result[STEPS_GAME]);
+       }
     }
+
     inStrInterSerial2 = "";
     inStrCompleteInterSerial2 = false;
-    // return false;
+
 }
 
   return false;
