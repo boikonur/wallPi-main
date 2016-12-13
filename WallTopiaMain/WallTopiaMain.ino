@@ -9,6 +9,7 @@ Chrono mainTimer(Chrono::SECONDS ); //60min timer
 Chrono puzzle1Timer(Chrono::SECONDS ); //20min timer
 Chrono puzzle1PenaltyTimer(Chrono::SECONDS ); //1min penalty timer
 
+Chrono pistolsTimer(Chrono::SECONDS); //2Min
 Chrono targetTimer(Chrono::MILLIS ); //3s
 
 
@@ -143,8 +144,10 @@ boolean inStrCompleteInterSerial2 = false;
 #define LANG_EN_RPI_CMD "lang_en\n"
 #define RESET_RPI_CMD "startgame\n"
 #define OFF_RPI_CMD "pioff\n"
+#define RESET_RPI_CMD "reset\n"
 #define SCRON_RPI_CMD "piscron\n"
-#define SCROFF_RPI_CMD_RPI_CMD "piscroff\n"
+#define SCROFF_RPI_CMD "piscroff\n"
+#define FAIL_RPI_CMD "failgame\n"
 #define REZ_RPI_CMD "rez,%d,%d,%d,%d,%d,%d\n" //6 games
 
 /////// MAIN GLOBAL VARIABLES/////////////
@@ -154,7 +157,7 @@ unsigned long hidden_combination_timer3 = 0;
 
 
 #define HIDDEN_HOLD_TIME 15000
-
+int language =0; //BG
 /*
 GAME_NAME0_BG = u'Изпитание за наблюдателност'
 GAME_NAME1_BG = u'Изпитание за сила'
@@ -173,6 +176,9 @@ GAME_NAME5_BG  = u'Изпитание за точност'
 
 int target_index=0;
 int  targetPatern[10]={4,8,1,2,5,9,0,3,7,6};
+
+int hitpoints=0;
+int targetAttempts=0;
 //int  targetPatern[10]={1,8,1,2,5,1,0,1,7,6};
 
 unsigned int result[6] = {0, 0, 0, 0, 0, 0};
@@ -520,7 +526,7 @@ case 9:
     case 12:
       debugSerial.println("All Games are over");
       debugSerial.print("TOTAL RESULT: ");
-      debugSerial.println( result[PUZZLE_GAME]+
+      debugSerial.println(result[PUZZLE_GAME]+
                           result[PANDA_GAME]+
                           result[STEPS_GAME]+
                           result[HIT_GAME]+
@@ -670,31 +676,43 @@ int pistolGame()
 {
 int res=0;
 
-
 switch(pistol_stage)
 {
 
         case 0:
         target_index=0;
         pistol_stage=1;
-        targetTimer.start();
+        hitpoints=0;
+        targetAttempts=0;
+        pistolsTimer.start();
         break;
 
         case 1:
         enableTarget(targetPatern[target_index]);
-        debugSerial.print("Target: ");
-        debugSerial.print(target_index);
+        // debugSerial.print("Target: ");
+        // debugSerial.print(target_index);
+        targetTimer.start();
         pistol_stage=2;
         break;
 
         case 2:
-        if(targetTimer.hasPassed(3000)) //change target on 1,4s?
+
+        if(pistolsTimer.hasPassed(120)) //change target on 1,4s?
+        {
+            pistol_stage=3;
+        }
+
+        if(targetTimer.hasPassed(1000)) //change target on 1,4s?
         {
           debugSerial.println(" MISSED");
           disableTarget(targetPatern[target_index]);
 
           targetTimer.restart();
           target_index++;
+          targetAttempts++;
+          if(target_index >=10)
+            target_index=0;
+
           pistol_stage=1;
         }else
 
@@ -704,20 +722,27 @@ switch(pistol_stage)
           disableTarget(targetPatern[target_index]);
             targetTimer.restart();
             target_index++;
-            result[PISTOL_GAME]++;
+            targetAttempts++;
+            if(target_index >=10)
+              target_index=0;
+            hitpoints++;
+            //result[PISTOL_GAME]++;
             pistol_stage=1;
         }
 
-        if(target_index >=10)
-        {
-          pistol_stage=3; // end of GAME
-        }
 
         break;
 
-        case 3:
-        target_index=0;
-        res=1;
+        case 3: // end of GAME
+        pistol_stage=0;
+        result[PISTOL_GAME]= (  hitpoints/targetAttempts)*100;
+        debugSerial.print("hitpoints: ");
+        debugSerial.println(hitpoints);
+        debugSerial.print("Target Attempts: ");
+        debugSerial.println(targetAttempts);
+
+        return 1;
+
         break;
 }
 
@@ -983,7 +1008,7 @@ void hiddenButtonControl()
       if ((unsigned long)(cur_time - hidden_combination_timer3) >= HIDDEN_HOLD_TIME)
       {
         hidden_combination_timer3 = cur_time;
-        //TODO some hidden function
+        resetGame();
       }
     }
     else
@@ -992,6 +1017,14 @@ void hiddenButtonControl()
     }
 
 
+}
+
+
+void resetGame()
+{
+rpiSerial.print(RESET_RPI_CMD);
+stage=0;
+debugSerial.println("Resetting Game");
 }
 
 void turnOffRpi()
@@ -1006,8 +1039,17 @@ void turnOffRpi()
 
 void changeRpiLang()
 {
-    rpiSerial.print(LANG_BG_RPI_CMD);
-    rpiSerial.print(LANG_EN_RPI_CMD);
+  if( language == 0 ) //if BG
+  {     language=1; // toEN
+        rpiSerial.print(LANG_EN_RPI_CMD);
+        debugSerial.println("Switching to ENGLISH");
+  }
+else
+{
+  language=0; //to BG
+  rpiSerial.print(LANG_BG_RPI_CMD);
+  debugSerial.println("Switching to BULGARIAN");
+}
 }
 
 
@@ -1131,6 +1173,8 @@ void gameTimer60()
       stage=0;   // Stage .. 0
       mainTimer.restart();      // Restart the chronometer.
       debugSerial.println("60 min are over...");
+      rpiSerial.print(FAIL_RPI_CMD);
+      stage=0;
     }
   }
 }
