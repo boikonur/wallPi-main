@@ -62,6 +62,7 @@ SoftwareSerial SoftSerial2(2, 3); // RX, TX
 #define LASER_BUTLED_PIN3  A5  //BUTTOn 2 LED
 #define LASER_SENSOR_PIN 33
 #define LASER_ENABLE_PIN  RELAY_PIN5
+#define LASER_SIREN RELAY_PIN4
 
 #define PISTOL_BUTTON_PIN1 31
 #define PISTOL_BUTLED_PIN1 29
@@ -714,7 +715,10 @@ bool but_state3=false;
         {
            //debugSerial.println("Laser is crossed");
            result[LASER_GAME]--;
+           laser_siren(HIGH);
            delay(100);
+           laser_siren(LOW);
+
            if (result[LASER_GAME] < 5)
            {
              debugSerial.println("LaserGame FAILED");
@@ -727,7 +731,7 @@ bool but_state3=false;
            else
            if(but_state2==true && but_state3==true)
            {
-             stage=3;
+             laser_stage=3;
            }
 
 
@@ -1269,6 +1273,10 @@ void gameTimer60()
   }
 }
 
+void laser_siren(int  on)
+{
+    digitalWrite(LASER_SIREN, on);
+}
 
 void serialEvent1() //RPi Serial
 {
