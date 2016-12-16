@@ -133,6 +133,10 @@ bool startedGameA=false;
 bool startedGameB=false;
 bool startedGameC=false;
 
+unsigned int prev_panda_result =0;
+unsigned int prev_steps_result =0;
+unsigned int prev_hit_result =0;
+
 String inStrRpiSerial = "";
 boolean inStrCompleteRpiSerial = false;
 String inStrInterSerial1 = "";
@@ -328,20 +332,16 @@ void setup() {
 
 
   changeMusic(0);
+  rpiSerial.print(RESET_RPI_CMD);
 }
 
 
-
-
-
-
-void loop() {
+void loop()
+{
 
 doorHandle();
 handleRpiInCmd();
 gameTimer60();
-
-
 
 if (stage != prev_stage)
  {
@@ -364,7 +364,6 @@ if (stage != prev_stage)
 
     case 0:
       mainTimer.restart();
-
       changeMusic(0);
       enButtonStart(1);
       stage = 1;
@@ -445,6 +444,11 @@ if (stage != prev_stage)
 
     case 5:
 
+
+ prev_panda_result =result[PANDA_GAME];
+ prev_steps_result =result[STEPS_GAME];
+ prev_hit_result =result[HIT_GAME];
+
     dojoGame();
     //sendResultToRPi();
       //Listen Serial Events
@@ -452,15 +456,28 @@ if (stage != prev_stage)
       //Game2 Panda    //max 10 points min 3points
       //Game3 Hit    //max 10 points min 3points
 
+if(result[PANDA_GAME] != prev_panda_result)
+{
+ prev_panda_result =result[PANDA_GAME];
+if(result[PANDA_GAME] >3)
+    sendResultToRPi();
+}
+
+if(result[STEPS_GAME] != prev_steps_result)
+{
+  prev_steps_result =result[STEPS_GAME];
+if(result[STEPS_GAME] >3)
+    sendResultToRPi();
+}
+
+if(result[HIT_GAME] != prev_hit_result)
+{
+  prev_hit_result =result[HIT_GAME];
+  if(result[HIT_GAME] >3)
+    sendResultToRPi();
+}
 
 
-
-      if(result[PANDA_GAME] >3 ||
-         result[STEPS_GAME] >3 ||
-         result[HIT_GAME] >3)
-         {
-          sendResultToRPi();
-        }
 
       if(result[PANDA_GAME] >3 &&
          result[STEPS_GAME] >3 &&
@@ -508,7 +525,8 @@ break;
 
 case 9:
 
-  if(laserGame()){
+  if(laserGame())
+  {
       stage = 10;
       debugSerial.print("TIME: ");
       debugSerial.print(getElapsed60());
@@ -516,7 +534,6 @@ case 9:
       debugSerial.print("Laser result is:");
       debugSerial.println(result[LASER_GAME]);
       sendResultToRPi(); //Send Intermediate results to Rpi
-
   }
       break;
 
@@ -639,7 +656,6 @@ case 9:
             unlockDoor(3); //Open Door3
             sendResultToRPi();
             stage=8;
-
           }
 
         }
