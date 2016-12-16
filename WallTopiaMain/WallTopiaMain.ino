@@ -345,6 +345,7 @@ void loop()
     doorHandle();
     handleRpiInCmd();
     gameTimer60();
+    hiddenButtonControl();
 
     if (stage != prev_stage)
     {
@@ -374,15 +375,13 @@ void loop()
     case 1:
         if (readButtonStart(1))
         {
-            rpiSerial.print(START_RPI_CMD);        
+            rpiSerial.print(START_RPI_CMD);
             stage = 2;
             turnOnLights(1);   //Turn Lights ON
             changeMusic(1);
             puzzle1Timer.restart();
             debugSerial.println("Game Started");
-            rpiSerial.print(RESET_RPI_CMD);
             result[PUZZLE_GAME] = MAX_PUZZLE_GAME; //Start with max points
-
         }
         break;
 
