@@ -202,10 +202,12 @@ unsigned int result[6] = {0, 0, 0, 0, 0, 0};
 unsigned int prev_result[6] = {0, 0, 0, 0, 0, 0};
 
 
-int stage = 0; //
+int stage = 0;
 int prev_stage = 0;
 int laser_stage = 0;
+int prev_laser_stage = 0;
 int pistol_stage = 0;
+int prev_pistol_stage = 0;
 
 
 
@@ -219,9 +221,9 @@ void setup()
 
     debugSerial.begin(9600);
 
-    //   while (!debugSerial) {
-    //    ; // wait for serial port to connect. Needed for native USB port only
-    //  }
+      while (!debugSerial) {
+       ; // wait for serial port to connect. Needed for native USB port only
+     }
 
     inStrRpiSerial.reserve(200);
     inStrInterSerial1.reserve(200);
@@ -376,12 +378,13 @@ void loop()
         if (readButtonStart(1))
         {
             rpiSerial.print(START_RPI_CMD);
+            result[PUZZLE_GAME] = MAX_PUZZLE_GAME; //Start with max points
             stage = 2;
             turnOnLights(1);   //Turn Lights ON
-            changeMusic(1);
             puzzle1Timer.restart();
             debugSerial.println("Game Started");
-            result[PUZZLE_GAME] = MAX_PUZZLE_GAME; //Start with max points
+            changeMusic(1);
+
         }
         break;
 
