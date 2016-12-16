@@ -362,7 +362,7 @@ if (stage != prev_stage)
     break;
 
     case 0:
-      mainTimer.start();
+      mainTimer.restart();
 
       changeMusic(0);
       enButtonStart(1);
@@ -374,7 +374,7 @@ if (stage != prev_stage)
       stage = 2;
       turnOnLights(1);   //Turn Lights ON
       changeMusic(1);
-      puzzle1Timer.start();
+      puzzle1Timer.restart();
       debugSerial.println("Game Started");
       rpiSerial.print(RESET_RPI_CMD);
       result[PUZZLE_GAME]=MAX_PUZZLE_GAME; //Start with max points
@@ -400,7 +400,7 @@ if (stage != prev_stage)
           }
           else
           {
-            puzzle1PenaltyTimer.start();
+            puzzle1PenaltyTimer.restart();
           }
         }
       }
@@ -757,14 +757,14 @@ int pistolGame()
         pistol_stage=1;
         hitpoints=0;
         targetAttempts=0;
-        pistolsTimer.start();
+        pistolsTimer.restart();
         break;
 
         case 1:
         enableTarget(targetPatern[target_index]);
         // debugSerial.print("Target: ");
         // debugSerial.print(target_index);
-        targetTimer.start();
+        targetTimer.restart();
         pistol_stage=2;
         break;
 
