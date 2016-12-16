@@ -1177,7 +1177,7 @@ bool dojoGame()
         startedGameA=false;
         debugSerial.print("Stopping Game A. ");
         debugSerial.print("Result is: ");
-        debugSerial.println(inStrInterSerial1.substring(6).toInt(););
+        debugSerial.println(inStrInterSerial1.substring(6).toInt());
 
         if(inStrInterSerial1.substring(6).toInt() > MIN_HIT_GAME)
           result[HIT_GAME]= inStrInterSerial1.substring(6).toInt();
