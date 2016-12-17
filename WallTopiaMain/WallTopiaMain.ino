@@ -200,7 +200,7 @@ int targetAttempts = 0;
 
 unsigned int result[6] = {0, 0, 0, 0, 0, 0};
 unsigned int prev_result[6] = {0, 0, 0, 0, 0, 0};
-
+unsigned int  temp_laser_result=0;
 
 int stage = 0;
 int prev_stage = 0;
@@ -482,7 +482,7 @@ void loop()
                 result[STEPS_GAME] > MIN_STEPS_GAME &&
                 result[HIT_GAME] > MIN_HIT_GAME)
         {
-            sendResultToRPi();
+          //  sendResultToRPi(); //TODO JUST IN CASE...
             debugSerial.println("Room 2 Finished");
             stage = 6;
         }
@@ -667,7 +667,7 @@ int laserGame()
     switch (laser_stage)
     {
     case 0:
-        result[LASER_GAME] = MAX_LASER_GAME;
+        temp_laser_result=0;
         digitalWrite(LASER_BUTLED_PIN1, HIGH);
         laser_stage = 1;
         break;
@@ -675,6 +675,7 @@ int laserGame()
     case 1:
         if (digitalRead(LASER_BUTTON_PIN1) == PRESSED)
         {
+            temp_laser_result=MAX_LASER_GAME;
             digitalWrite(LASER_BUTLED_PIN1, LOW);
             digitalWrite(LASER_BUTLED_PIN2, HIGH);
             digitalWrite(LASER_BUTLED_PIN3, HIGH);
@@ -683,11 +684,8 @@ int laserGame()
             laser_stage = 2;
         }
         break;
-    case 22:
 
-    break;
-
-    case 2:
+      case 2:
         if (digitalRead(LASER_BUTTON_PIN2) == PRESSED)
         {
             delay(20);
@@ -722,12 +720,12 @@ int laserGame()
 
         if (digitalRead(LASER_SENSOR_PIN) == LOW) ///SENSOR closes circuit when no light
         {
-            result[LASER_GAME]--;
+            temp_laser_result--;
             laser_siren(HIGH);
             delay(100);
             laser_siren(LOW);
 
-            if (result[LASER_GAME] < MIN_LASER_GAME)
+            if (temp_laser_result < MIN_LASER_GAME)
             {
                 debugSerial.println("LaserGame FAILED");
                 digitalWrite(LASER_BUTLED_PIN1, HIGH);
@@ -738,7 +736,7 @@ int laserGame()
             }
         }
 
-        if (but_state2 == true && but_state3 == true && result[LASER_GAME] > MIN_LASER_GAME)
+        if (but_state2 == true && but_state3 == true && temp_laser_result > MIN_LASER_GAME)
         {
             laser_stage = 3;
         }
@@ -746,6 +744,8 @@ int laserGame()
         break;
 
     case 3:
+
+    result[LASER_GAME] = temp_laser_result;
         disableLasers();
         return 1;
         break;
