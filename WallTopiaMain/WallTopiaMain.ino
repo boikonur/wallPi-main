@@ -516,6 +516,7 @@ void loop()
         enableLasers(); //better start game in beginning
         turnOffLights(4);
         laser_stage = 0;
+        pistol_stage = 0;
         stage = 9;
 
         break;
@@ -659,7 +660,7 @@ void loop()
 
 int laserGame()
 {
-    int res = 0;
+
     bool but_state2 = false;
     bool but_state3 = false;
 
@@ -746,18 +747,17 @@ int laserGame()
 
     case 3:
         disableLasers();
-        res = 1;
+        return 1;
         break;
     }
 
-    return res;
+    return 0;
 } //end laser Game
 
 
 
 int pistolGame()
 {
-    int res = 0;
 
     switch (pistol_stage)
     {
@@ -840,11 +840,11 @@ int pistolGame()
         turnOnLights(3);
         turnOffLights(4);
         changeMusic(1);
-        res=1;
+        return 1;
         break;
     }
 
-    return res;
+    return 0;
 }//end  pistol Game
 
 
@@ -1307,33 +1307,8 @@ void sendResultToRPi()
 bool arenaGame()
 {
 
-
-//   if(result[LASER_GAME] > MIN_LASER_GAME &&
-//     result[PISTOL_GAME] > MIN_PISTOL_GAME)
-//     {
-//       stage = 14;
-//     }
-//     else{
-//         digitalWrite(LASER_BUTLED_PIN1, HIGH);
-//         digitalWrite(PISTOL_BUTLED_PIN1, HIGH);
-//
-// if (digitalRead(PISTOL_BUTTON_PIN1) == PRESSED)
-// {
-//       digitalWrite(PISTOL_BUTLED_PIN1, LOW);
-// }
-//
-//
-// if (digitalRead(LASER_BUTTON_PIN1) == PRESSED)
-// {
-//     digitalWrite(LASER_BUTLED_PIN1, LOW);
-//
-// }
-//
-//       //do stuff
-
   if (laserGame())
   {
-      stage = 10;
       debugSerial.print("TIME: ");
       debugSerial.print(getElapsed60());
       debugSerial.println(" seconds");
