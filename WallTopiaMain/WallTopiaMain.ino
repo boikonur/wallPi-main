@@ -619,7 +619,11 @@ void loop()
         disButtonStart(1);
         disButtonStart(2);
         disButtonStart(3);
+
+        unlockDoor(1);
+        unlockDoor(2);
         unlockDoor(3);
+
         changeMusic(0);
         stage = 14;
         break;
@@ -1316,7 +1320,7 @@ void sendResultToRPi()
            );
     rpiSerial.print(command);
     debugSerial.println(command);
-    delay(4000);
+   delay(100);
 }
 
 
