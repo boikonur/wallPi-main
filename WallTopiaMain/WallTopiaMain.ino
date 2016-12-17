@@ -338,6 +338,7 @@ void setup()
 
     changeMusic(0);
     rpiSerial.print(RESET_RPI_CMD);
+
 }
 
 
@@ -669,6 +670,8 @@ int laserGame()
     case 0:
         temp_laser_result=0;
         digitalWrite(LASER_BUTLED_PIN1, HIGH);
+        digitalWrite(LASER_BUTLED_PIN2, LOW);
+        digitalWrite(LASER_BUTLED_PIN3, LOW);
         laser_stage = 1;
         break;
 
@@ -744,10 +747,11 @@ int laserGame()
         break;
 
     case 3:
-
     result[LASER_GAME] = temp_laser_result;
-        disableLasers();
-        return 1;
+    laser_stage=0;
+    temp_laser_result=0;
+    disableLasers();
+    return 1;
         break;
     }
 
