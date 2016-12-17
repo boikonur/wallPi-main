@@ -587,6 +587,11 @@ void loop()
                 enButtonStart(2);
                 enButtonStart(3);
             }
+        }else{
+          disButtonStart(1);
+          disButtonStart(2);
+          disButtonStart(3);
+
         }
 
 
@@ -599,12 +604,21 @@ void loop()
               stage = 13;
             }
         }
+        else
+        {
+          disButtonStart(1);
+          enButtonStart(2);
+          disButtonStart(3);
+        }
 
         break;
 
 
 
     case 13: //FINISH GAME
+        disButtonStart(1);
+        disButtonStart(2);
+        disButtonStart(3);
         unlockDoor(3);
         changeMusic(0);
         stage = 14;
@@ -831,7 +845,7 @@ int pistolGame()
     case 4: // end of GAME
         pistol_stage = 0;
         result[PISTOL_GAME] = (hitpoints / targetAttempts) * MAX_PISTOL_GAME;
-
+        result[PISTOL_GAME]=20;
         debugSerial.print("hitpoints: ");
         debugSerial.println(hitpoints);
         debugSerial.print("Target Attempts: ");
