@@ -573,6 +573,7 @@ void loop()
 
     case 12: //Decide to exit?
         enButtonStart(1);
+        disButtonStart(2);
         enButtonStart(3);
 
         if (readButtonStart(1) == HIGH) //FINISH NO
@@ -586,18 +587,17 @@ void loop()
                 enButtonStart(2);
                 enButtonStart(3);
             }
-
-
-
         }
+
+
         if (readButtonStart(3) == HIGH) //FINISH YES
         {
             delay(20);
             if (readButtonStart(3) == HIGH)
             {
-                stage = 13;
+              debugSerial.println("LEAVE THE ROOM:");
+              stage = 13;
             }
-
         }
 
         break;
@@ -617,7 +617,6 @@ void loop()
     case 22: //REPLAY MODE
 
         //CHOSE ROOM2 or ROOM3
-
         if (readButtonStart(2))
         {
           delay(10);
@@ -636,25 +635,24 @@ void loop()
         }
         else
 
-            if (readButtonStart(3))  //Monitor ButtonStart3
+        if (readButtonStart(3))  //Monitor ButtonStart3
+        {
+            delay(10);
+            if (readButtonStart(3))
             {
-                delay(10);
-                if (readButtonStart(3))
-                {
-                    debugSerial.println("REPLAY ROOM 3");
-                    turnOffLights(3);
-                    turnOffLights(4);
-                    changeMusic(3);
-                    unlockDoor(3); //Open Door3
-                    sendResultToRPi();
-                    stage = 9;
-                }
-
+                debugSerial.println("REPLAY ROOM 3");
+                turnOffLights(3);
+                turnOffLights(4);
+                changeMusic(3);
+                unlockDoor(3); //Open Door3
+                sendResultToRPi();
+                stage = 9;
             }
+        }
 
+     break;
 
-        break;
-    }
+    }//end switch (stage)
 
 } // END LOOP
 
@@ -748,6 +746,7 @@ int laserGame()
 
     case 3:
     result[LASER_GAME] = temp_laser_result;
+    result[LASER_GAME]=20;
     laser_stage=0;
     temp_laser_result=0;
     disableLasers();
