@@ -146,11 +146,15 @@ boolean inStrCompleteInterSerial2 = false;
 //RPi COmmands
 #define LANG_BG_RPI_CMD "lang_bg\n"
 #define LANG_EN_RPI_CMD "lang_en\n"
-#define START_RPI_CMD "startgame\n"
-#define OFF_RPI_CMD "pioff\n"
-#define RESET_RPI_CMD "reset\n"
 #define SCRON_RPI_CMD "piscron\n"
 #define SCROFF_RPI_CMD "piscroff\n"
+#define OFF_RPI_CMD "pioff\n"
+
+
+#define START_RPI_CMD "startgame\n"
+#define ENDGAME_RPI_CMD "endscreen\n"
+#define REPLAY_RPI_CMD "replay\n"
+#define RESET_RPI_CMD "reset\n"
 #define FAIL_RPI_CMD "failgame\n"
 #define REZ_RPI_CMD "rez,%d,%d,%d,%d,%d,%d\n" //6 games
 
@@ -357,8 +361,13 @@ void loop()
         debugSerial.println(stage);
     }
 
+
     switch (stage)
     {
+    case -2:
+      // CHAKAME HIDDENBUTTON
+      //FAILED STAGE
+    break;
 
     case -1:
         result[PUZZLE_GAME] = 0;
@@ -367,14 +376,26 @@ void loop()
         result[HIT_GAME] = 0;
         result[LASER_GAME] = 0;
         result[PISTOL_GAME] = 0;
+        stage=0;
+
         break;
 
     case 0:
         mainTimer.restart();
         changeMusic(0);
         enButtonStart(1);
+
+        turnOffLights(1);
+        turnOffLights(2);
+        turnOffLights(3);
+        turnOffLights(4);
+
+        unlockDoor(1);
+        unlockDoor(2);
+        unlockDoor(3);
         stage = 1;
         break;
+
     case 1:
         if (readButtonStart(1))
         {
@@ -384,8 +405,8 @@ void loop()
             turnOnLights(1);   //Turn Lights ON
             puzzle1Timer.restart();
             debugSerial.println("Game Started");
-            changeMusic(1);
 
+            changeMusic(1);
         }
         break;
 
@@ -400,6 +421,8 @@ void loop()
                     if ( puzzle1PenaltyTimer.hasPassed(60)) //1min penalty
                     {
                         result[PUZZLE_GAME]--;
+                        if(result[PUZZLE_GAME]<=MIN_PUZZLE_GAME)
+                          result[PUZZLE_GAME]=MIN_PUZZLE_GAME;
                         debugSerial.print("One Minute Penalty. Result is:");
                         debugSerial.println(result[PUZZLE_GAME]);
                         puzzle1PenaltyTimer.restart();
@@ -478,10 +501,9 @@ void loop()
         }
 
 
-
         if (result[PANDA_GAME] > MIN_PANDA_GAME &&
-                result[STEPS_GAME] > MIN_STEPS_GAME &&
-                result[HIT_GAME] > MIN_HIT_GAME)
+           result[STEPS_GAME] > MIN_STEPS_GAME &&
+           result[HIT_GAME] > MIN_HIT_GAME)
         {
           //  sendResultToRPi(); //TODO JUST IN CASE...
             debugSerial.println("Room 2 Finished");
@@ -544,9 +566,10 @@ void loop()
       }
 
 
-      if (result[PISTOL_GAME] > MIN_PISTOL_GAME && result[LASER_GAME] > MIN_LASER_GAME)
+      if (result[PISTOL_GAME] > MIN_PISTOL_GAME &&
+          result[LASER_GAME] > MIN_LASER_GAME)
       {
-          sendResultToRPi();
+          //sendResultToRPi();
           debugSerial.println("Room 3 Finished");
           stage = 10; //TODO fix
       }
@@ -555,19 +578,22 @@ void loop()
 
 
     case 10:
-    debugSerial.println("All Games are over");
-    debugSerial.print("######  TOTAL RESULT: ");
-    debugSerial.println(result[PUZZLE_GAME] +
-                        result[PANDA_GAME] +
-                        result[STEPS_GAME] +
-                        result[HIT_GAME] +
-                        result[LASER_GAME] +
-                        result[PISTOL_GAME]
-                       );
-    stage = 11;
+      debugSerial.println("All Games are over");
+      debugSerial.print("######  TOTAL RESULT: ");
+      debugSerial.println(result[PUZZLE_GAME] +
+                          result[PANDA_GAME] +
+                          result[STEPS_GAME] +
+                          result[HIT_GAME] +
+                          result[LASER_GAME] +
+                          result[PISTOL_GAME]
+                         );
+      stage = 11;
     break;
 
     case 11:
+      rpiSerial.print(ENDGAME_RPI_CMD);
+      delay(100);
+      debugSerial.println("REPLAY OR FINISH?");
       stage=12;
     break;
 
@@ -583,16 +609,14 @@ void loop()
             {
                 stage = 22;
                 debugSerial.println("REPLAY MODE:");
+                rpiSerial.print(REPLAY_RPI_CMD);
                 disButtonStart(1);
                 enButtonStart(2);
                 enButtonStart(3);
+                delay(100);
             }
-        }else{
-          disButtonStart(1);
-          disButtonStart(2);
-          disButtonStart(3);
-
         }
+
 
 
         if (readButtonStart(3) == HIGH) //FINISH YES
@@ -600,15 +624,18 @@ void loop()
             delay(20);
             if (readButtonStart(3) == HIGH)
             {
-              debugSerial.println("LEAVE THE ROOM:");
               stage = 13;
+              debugSerial.println("LEAVE THE ROOM:");
+
+              disButtonStart(1);
+              disButtonStart(2);
+              disButtonStart(3);
+              unlockDoor(1);
+              unlockDoor(2);
+              unlockDoor(3);
+              changeMusic(0);
+
             }
-        }
-        else
-        {
-          disButtonStart(1);
-          enButtonStart(2);
-          disButtonStart(3);
         }
 
         break;
@@ -616,24 +643,17 @@ void loop()
 
 
     case 13: //FINISH GAME
-        disButtonStart(1);
-        disButtonStart(2);
-        disButtonStart(3);
-
-        unlockDoor(1);
-        unlockDoor(2);
-        unlockDoor(3);
-
-        changeMusic(0);
-        stage = 14;
-        break;
+      debugSerial.println("Resetting Game...");
+      mainTimer.restart();
+      stage = 14;
+   break;
 
     case 14:
-        break;
-
+      delay(120000);
+      stage =-1;
+    break;
 
     case 22: //REPLAY MODE
-
         //CHOSE ROOM2 or ROOM3
         if (readButtonStart(2))
         {
@@ -688,6 +708,7 @@ int laserGame()
         digitalWrite(LASER_BUTLED_PIN1, HIGH);
         digitalWrite(LASER_BUTLED_PIN2, LOW);
         digitalWrite(LASER_BUTLED_PIN3, LOW);
+
         laser_stage = 1;
         break;
 
@@ -1348,6 +1369,7 @@ bool arenaGame()
       debugSerial.println(result[PISTOL_GAME]);
       sendResultToRPi(); //Send Intermediate results to Rpi
   }
+  return 0;
 }
 
 bool dojoGame()
@@ -1428,7 +1450,7 @@ bool dojoGame()
 
     }
 
-    return false;
+    return 0;
 }
 
 void handleRpiInCmd()
@@ -1456,11 +1478,21 @@ void gameTimer60()
         if (mainTimer.hasPassed(60 * 60)) //1 Hour?
         {
             unlockDoor(1); // OPEN DOOR
+            unlockDoor(2);
+            disButtonStart(1);
+            disButtonStart(2);
+            disButtonStart(3);
+
+            turnOnLights(1);
+            turnOffLights(2);
+            turnOffLights(3);
+            turnOffLights(4);
+
             stage = 0; // Stage .. 0
             mainTimer.restart();      // Restart the chronometer.
             debugSerial.println("60 min are over...");
             rpiSerial.print(FAIL_RPI_CMD);
-            stage = 0;
+            stage = -1;
         }
     }
 }
