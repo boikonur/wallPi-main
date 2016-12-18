@@ -684,10 +684,10 @@ void loop()
           unlockDoor(2); //Open Door2
 
           result[PANDA_GAME] = 0;
-          result[STEP_GAME] = 0;
+          result[STEPS_GAME] = 0;
           result[HIT_GAME] = 0;
           prev_result[HIT_GAME] = result[HIT_GAME];
-          prev_result[STEP_GAME] = result[STEP_GAME];
+          prev_result[STEPS_GAME] = result[STEPS_GAME];
           prev_result[PANDA_GAME] = result[PANDA_GAME];
 
           interSerial1.flush();
