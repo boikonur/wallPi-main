@@ -656,7 +656,7 @@ void loop()
       mainTimer.restart();
       rpiSerial.print(RESET_RPI_CMD);
       delay(100);
-      walkOutTimer.start();
+      walkOutTimer.restart();
 
       stage = 14;
    break;
