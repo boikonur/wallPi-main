@@ -136,7 +136,8 @@ bool startedGameB = false;
 bool startedGameC = false;
 
 
-
+bool replayRoom2 =false;
+bool replayRoom3 =false;
 
 String inStrRpiSerial = "";
 boolean inStrCompleteRpiSerial = false;
@@ -517,7 +518,15 @@ void loop()
       {
         //  sendResultToRPi(); //TODO JUST IN CASE...
         debugSerial.println("Room 2 Finished");
-        stage = 6;
+
+        if(replayRoom2==true)
+        {
+          replayRoom2=false;
+          stage = 10; //TODO
+        }else
+         {
+          stage = 6;
+        }
       }
       break;
 
@@ -582,6 +591,15 @@ void loop()
         //sendResultToRPi();
         debugSerial.println("Room 3 Finished");
         stage = 10; //TODO fix
+
+        if(replayRoom3==true)
+        {
+          replayRoom3=false;
+          stage = 10;
+        }else
+         {
+          stage = 10;
+        }
       }
 
       break;
@@ -693,6 +711,7 @@ void loop()
           interSerial1.flush();
           interSerial2.flush();
           sendResultToRPi();
+          replayRoom2 =true;
           stage = 5;
         }
       }
@@ -713,6 +732,7 @@ void loop()
             changeMusic(3);
             unlockDoor(3); //Open Door3
             sendResultToRPi();
+            replayRoom3 =true;
             stage = 9;
           }
         }
