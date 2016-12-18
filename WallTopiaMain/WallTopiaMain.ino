@@ -704,6 +704,10 @@ void loop()
           if (readButtonStart(3))
           {
             debugSerial.println("REPLAY ROOM 3");
+            result[LASER_GAME]=0;
+            result[PISTOL_GAME]=0;
+            prev_result[LASER_GAME] = result[LASER_GAME];
+            prev_result[PISTOL_GAME] = result[PISTOL_GAME];
             turnOffLights(3);
             turnOffLights(4);
             changeMusic(3);
