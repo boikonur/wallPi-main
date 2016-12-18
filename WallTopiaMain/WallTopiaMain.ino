@@ -9,6 +9,8 @@ Chrono mainTimer(Chrono::SECONDS ); //60min timer
 Chrono puzzle1Timer(Chrono::SECONDS ); //20min timer
 Chrono puzzle1PenaltyTimer(Chrono::SECONDS ); //1min penalty timer
 
+Chrono walkOutTimer(Chrono::SECONDS );  //5 min
+
 Chrono pistolsTimer(Chrono::SECONDS); //2Min
 Chrono targetTimer(Chrono::MILLIS ); //3s
 
@@ -345,6 +347,12 @@ void setup()
 
 }
 
+////////////////////////////////////////////////LOOP///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 void loop()
 {
@@ -370,6 +378,7 @@ void loop()
     break;
 
     case -1:
+
         result[PUZZLE_GAME] = 0;
         result[PANDA_GAME] = 0;
         result[STEPS_GAME] = 0;
@@ -390,15 +399,16 @@ void loop()
         turnOffLights(3);
         turnOffLights(4);
 
-        unlockDoor(1);
-        unlockDoor(2);
-        unlockDoor(3);
+        lockDoor(1);
+        lockDoor(2);
+        lockDoor(3);
         stage = 1;
         break;
 
     case 1:
         if (readButtonStart(1))
         {
+            //lockDoor(1); //lock after game starts
             rpiSerial.print(START_RPI_CMD);
             result[PUZZLE_GAME] = MAX_PUZZLE_GAME; //Start with max points
             stage = 2;
@@ -627,6 +637,7 @@ void loop()
               stage = 13;
               debugSerial.println("LEAVE THE ROOM:");
 
+
               disButtonStart(1);
               disButtonStart(2);
               disButtonStart(3);
@@ -640,17 +651,24 @@ void loop()
 
         break;
 
-
-
     case 13: //FINISH GAME
       debugSerial.println("Resetting Game...");
       mainTimer.restart();
+      rpiSerial.print(RESET_RPI_CMD);
+      delay(100);
+      walkOutTimer.start();
+
       stage = 14;
    break;
 
     case 14:
-      delay(120000);
-      stage =-1;
+    if(walkOutTimer.hasPassed(60*5))
+    {
+      walkOutTimer.stop();
+            stage =-1;
+    }
+
+
     break;
 
     case 22: //REPLAY MODE
@@ -693,6 +711,12 @@ void loop()
     }//end switch (stage)
 
 } // END LOOP
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+
 
 
 int laserGame()
@@ -1297,7 +1321,11 @@ void hiddenButtonControl()
 void resetGame()
 {
     rpiSerial.print(RESET_RPI_CMD);
+    delay(100);
     stage = 0;
+
+    lockDoor(2);
+    lockDoor(3);
     debugSerial.println("Resetting Game");
 }
 
