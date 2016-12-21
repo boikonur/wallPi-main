@@ -102,8 +102,8 @@ SoftwareSerial SoftSerial2(2, 3); // RX, TX
 
 ///////LIGHTS/////////////
 #define LIGHTS1_PIN RELAY_PIN1 // same pin?
-#define LIGHTS2_PIN RELAY_PIN1 // same pin?
-#define LIGHTS3_PIN RELAY_PIN2
+#define LIGHTS2_PIN RELAY_PIN2 // same pin?
+#define LIGHTS3_PIN RELAY_PIN3
 #define LIGHTS_UV_PIN RELAY_PIN3
 
 ////////////DOOR Variables////////////////
@@ -167,7 +167,7 @@ unsigned long hidden_combination_timer2 = 0;
 unsigned long hidden_combination_timer3 = 0;
 
 
-#define HIDDEN_HOLD_TIME 15000
+#define HIDDEN_HOLD_TIME 5000
 int language = 0; //BG
 /*
   GAME_NAME0_BG = u'Изпитание за наблюдателност'
@@ -345,6 +345,7 @@ void setup()
 
   changeMusic(0);
   rpiSerial.print(RESET_RPI_CMD);
+  delay(100);
 
 }
 
@@ -407,17 +408,21 @@ void loop()
       break;
 
     case 1:
-      if (readButtonStart(1))
-      {
+      if (digitalRead(MAIN_BUTTON_PIN1) == PRESSED)
+      { delay(10);
+        if (digitalRead(MAIN_BUTTON_PIN1) == PRESSED)
+        {
         //lockDoor(1); //lock after game starts
         rpiSerial.print(START_RPI_CMD);
         result[PUZZLE_GAME] = MAX_PUZZLE_GAME; //Start with max points
-        stage = 2;
+
         turnOnLights(1);   //Turn Lights ON
         puzzle1Timer.restart();
         debugSerial.println("Game Started");
 
+        stage = 2;
         changeMusic(1);
+      }
       }
       break;
 
@@ -468,8 +473,10 @@ void loop()
 
     case 4:
       //Monitor ButtonStart2
-      if (readButtonStart(2))
-      {
+      if (digitalRead(MAIN_BUTTON_PIN2) == PRESSED)
+      { delay(10);
+        if (digitalRead(MAIN_BUTTON_PIN2) == PRESSED)
+        {
         debugSerial.println("Open Room 2");
         turnOnLights(2);
         changeMusic(2);
@@ -477,8 +484,8 @@ void loop()
 
         interSerial1.flush();
         interSerial2.flush();
-
         stage = 5;
+        }
       }
 
       break;
@@ -542,32 +549,33 @@ void loop()
 
     case 7:
 
-      if (readButtonStart(3))  //Monitor ButtonStart3
+    if (digitalRead(MAIN_BUTTON_PIN3) == PRESSED)
+    { delay(10);
+      if (digitalRead(MAIN_BUTTON_PIN3) == PRESSED)
       {
         debugSerial.println("Open Room 3");
-        turnOffLights(3);
-        turnOffLights(4);
+        turnOnLights(3);
+        //turnOffLights(4);
         changeMusic(3);
         unlockDoor(3); //Open Door3
         stage = 8;
       }
+    }
       break;
 
     case 8:
 
       enableLasers(); //better start game in beginning
-      turnOffLights(4);
+      turnOffLights(3);
       laser_stage = 0;
       pistol_stage = 0;
       stage = 9;
 
+      prev_result[LASER_GAME] = result[LASER_GAME];
+      prev_result[PISTOL_GAME] = result[PISTOL_GAME];
       break;
 
     case 9:
-
-      prev_result[LASER_GAME] = result[LASER_GAME];
-      prev_result[PISTOL_GAME] = result[PISTOL_GAME];
-
       arenaGame();
 
       if (result[LASER_GAME] != prev_result[LASER_GAME])
@@ -591,13 +599,13 @@ void loop()
         //sendResultToRPi();
         debugSerial.println("Room 3 Finished");
         stage = 10; //TODO fix
-
+        turnOnLights(3);
         if(replayRoom3==true)
         {
           replayRoom3=false;
           stage = 10;
         }else
-         {
+        {
           stage = 10;
         }
       }
@@ -630,10 +638,10 @@ void loop()
       disButtonStart(2);
       enButtonStart(3);
 
-      if (readButtonStart(1) == HIGH) //FINISH NO
+      if (digitalRead(MAIN_BUTTON_PIN1) == PRESSED) //FINISH NO
       {
         delay(20);
-        if (readButtonStart(1) == HIGH)
+        if (digitalRead(MAIN_BUTTON_PIN1) == PRESSED)
         {
           stage = 22;
           debugSerial.println("REPLAY MODE:");
@@ -647,14 +655,13 @@ void loop()
 
 
 
-      if (readButtonStart(3) == HIGH) //FINISH YES
+      if (digitalRead(MAIN_BUTTON_PIN3) == PRESSED) //FINISH YES
       {
         delay(20);
-        if (readButtonStart(3) == HIGH)
+        if (digitalRead(MAIN_BUTTON_PIN3) == PRESSED)
         {
           stage = 13;
           debugSerial.println("LEAVE THE ROOM:");
-
 
           disButtonStart(1);
           disButtonStart(2);
@@ -663,6 +670,10 @@ void loop()
           unlockDoor(2);
           unlockDoor(3);
           changeMusic(0);
+
+          turnOffLights(2);
+          turnOffLights(3);
+          turnOffLights(4);
 
         }
       }
@@ -683,6 +694,9 @@ void loop()
       if (walkOutTimer.hasPassed(60 * 5))
       {
         walkOutTimer.stop();
+        lockDoor(1);
+        lockDoor(2);
+        lockDoor(3);
         stage = -1;
       }
 
@@ -691,10 +705,10 @@ void loop()
 
     case 22: //REPLAY MODE
       //CHOSE ROOM2 or ROOM3
-      if (readButtonStart(2))
+      if (digitalRead(MAIN_BUTTON_PIN2) == PRESSED)
       {
         delay(10);
-        if (readButtonStart(2))
+        if (digitalRead(MAIN_BUTTON_PIN2) == PRESSED)
         {
           debugSerial.println("REPLAY ROOM 2");
           turnOnLights(2);
@@ -717,10 +731,10 @@ void loop()
       }
       else
 
-        if (readButtonStart(3))  //Monitor ButtonStart3
+      if (digitalRead(MAIN_BUTTON_PIN3) == PRESSED)  //Monitor ButtonStart3
         {
           delay(10);
-          if (readButtonStart(3))
+          if (digitalRead(MAIN_BUTTON_PIN3) == PRESSED)
           {
             debugSerial.println("REPLAY ROOM 3");
             result[LASER_GAME]=0;
@@ -936,7 +950,7 @@ int pistolGame()
         disableTarget(i);
       }
       turnOnLights(3);
-      turnOffLights(4);
+      //turnOffLights(4);
       changeMusic(1);
       return 1;
       break;
@@ -1294,6 +1308,7 @@ void changeMusic(int  track)
     default:
       debugSerial.println("No Such CoFX command");
   }
+  delay(10);
 }
 
 
@@ -1304,7 +1319,7 @@ void hiddenButtonControl()
   unsigned long cur_time = millis();
 
   // HOLD 1 and 3 to turnoff RPI
-  if (readButtonStart(1) == PRESSED && readButtonStart(2) == RELEASED && readButtonStart(3) == PRESSED)
+  if (digitalRead(MAIN_BUTTON_PIN1) == PRESSED && digitalRead(MAIN_BUTTON_PIN2) == RELEASED &&  digitalRead(MAIN_BUTTON_PIN3) == PRESSED)
   {
     if ((unsigned long)(cur_time - hidden_combination_timer1) >= HIDDEN_HOLD_TIME)
     {
@@ -1318,7 +1333,7 @@ void hiddenButtonControl()
   }
 
   // HOLD 1 and 2 to change language
-  if (readButtonStart(1) == PRESSED && readButtonStart(2) == PRESSED && readButtonStart(3) == RELEASED)
+  if (digitalRead(MAIN_BUTTON_PIN1)  == PRESSED && digitalRead(MAIN_BUTTON_PIN2) == PRESSED && digitalRead(MAIN_BUTTON_PIN3) == RELEASED)
   {
     if ((unsigned long)(cur_time - hidden_combination_timer2) >= HIDDEN_HOLD_TIME)
     {
@@ -1332,7 +1347,7 @@ void hiddenButtonControl()
   }
 
   // HOLD 1 and 2 to change language
-  if (readButtonStart(1) == RELEASED && readButtonStart(2) == PRESSED && readButtonStart(3) == PRESSED)
+  if (digitalRead(MAIN_BUTTON_PIN1)  == RELEASED && digitalRead(MAIN_BUTTON_PIN2) == PRESSED && digitalRead(MAIN_BUTTON_PIN3) == PRESSED)
   {
     if ((unsigned long)(cur_time - hidden_combination_timer3) >= HIDDEN_HOLD_TIME)
     {
@@ -1344,7 +1359,6 @@ void hiddenButtonControl()
   {
     hidden_combination_timer3 = cur_time;
   }
-
 
 }
 
@@ -1416,6 +1430,7 @@ bool arenaGame()
     debugSerial.println(" seconds");
     debugSerial.print("Laser result is:");
     debugSerial.println(result[LASER_GAME]);
+
     sendResultToRPi(); //Send Intermediate results to Rpi
   }
 
@@ -1427,6 +1442,7 @@ bool arenaGame()
     debugSerial.println(" seconds");
     debugSerial.print("Pistol Game result is: ");
     debugSerial.println(result[PISTOL_GAME]);
+
     sendResultToRPi(); //Send Intermediate results to Rpi
   }
   return 0;
