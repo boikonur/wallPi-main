@@ -245,7 +245,7 @@ void setup()
   inStrInterSerial2.reserve(200);
 
   pinMode(13, OUTPUT);
- 
+
 
   pinMode(RELAY_PIN1, OUTPUT);
   pinMode(RELAY_PIN2, OUTPUT);
@@ -402,7 +402,7 @@ void loop()
       enButtonStart(1);
       disButtonStart(2);
       disButtonStart(3);
-      
+
       turnOffLights(1);
       turnOffLights(2);
       turnOffLights(3);
@@ -888,18 +888,18 @@ int pistolGame()
 //    for( int i =0; i <7; i++){
 //
 //debugSerial.print(readTarget(i));
-//      
+//
 //    }
 //    debugSerial.println("");
 //    t++;
 //if (t>7)
 //t=0;
 //  }
-  
-  
+
+
   switch (pistol_stage)
   {
-  
+
     case 0:
       target_index = 0;
       hitpoints = 0;
@@ -947,7 +947,7 @@ int pistolGame()
         targetTimer.restart();
         target_index++;
         enableTarget(target_index);
-        
+
         targetAttempts++;
         if (target_index > 7)
           target_index = 0;
@@ -959,15 +959,15 @@ int pistolGame()
         if (readTarget(target_index))
         {
           delay(200);
-        
+
           if (readTarget(target_index))
         {
-          
+
           debugSerial.println(" HIT");
           disableTarget(target_index);
           targetTimer.restart();
           target_index++;
-          
+
           if (target_index > 7)
             target_index = 0;
           hitpoints++;
@@ -980,10 +980,10 @@ int pistolGame()
       if(hitpoints<=targetAttempts)
       {
         result[PISTOL_GAME]  = map(hitpoints, 0, targetAttempts,MIN_PISTOL_GAME ,MAX_PISTOL_GAME);
-      
+
       }else
       result[PISTOL_GAME] =  MAX_PISTOL_GAME;
-   
+
 
       debugSerial.print("hitpoints: ");
       debugSerial.println(hitpoints);
@@ -1506,28 +1506,28 @@ bool dojoGame()
   debugSerial.print(arg1); debugSerial.print(" ");
   debugSerial.print(arg2);debugSerial.print(" ");
   debugSerial.print(arg3);debugSerial.print(" ");
-  
+
  debugSerial.println(inStrInterSerial1);
-    
+
      if  ( inStrInterSerial1.indexOf("STARTA")!=-1 )
     {
       debugSerial.println("Starting Game A");
       startedGameA = true;
     }else
-    
+
     if  ( inStrInterSerial1.indexOf("STARTB")!=-1)
     {
       debugSerial.println("Starting Game B");
       startedGameB = true;
     }
-    
+
     if  ( inStrInterSerial1.indexOf("STARTC")!=-1)
     {
       debugSerial.println("Starting Game C");
       startedGameC = true;
     }
 
-   
+
 
 
     if (inStrInterSerial1.indexOf(stopGameA)!=-1)
@@ -1696,19 +1696,19 @@ void serialEvent2() //interSerial1    Puzzle A and puzzle B
     {
       if (inStrInterSerial1.length() > 0)
       {
-        interSerial1.flush();
         inStrCompleteInterSerial1 = true;
         break;
       }
     }
     else
     {
+      if(inChar >= 32 && inChar <= 127)
       inStrInterSerial1 += inChar;
     }
 
   }
 }
-//
+
 //void serialEvent3() //interSerial2  puzzle C
 //{
 //  while (interSerial2.available())
