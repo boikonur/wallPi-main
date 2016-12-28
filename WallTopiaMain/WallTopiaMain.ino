@@ -124,9 +124,9 @@ bool enableDoor[3] = {0, 0, 0};
 /////////DOJO GAME VARIABLES///////////////
 
 //STARTA\n ->>>>>>>> STOPA%12222\n
-String startGameA = "STARTA"; //"6002705323
-String startGameB = "STARTB"; //6002705323
-String startGameC = "STARTC";  //6002705323
+char startGameA[] = "STARTA"; //"6002705323
+char startGameB[] = "STARTB"; //6002705323
+char startGameC[] = "STARTC";  //6002705323
 String stopGameA = "STOPA"; //"6002705323
 String stopGameB = "STOPB"; //6002705323
 String stopGameC = "STOPC";  //6002705323
@@ -208,7 +208,7 @@ unsigned int result[6] = {0, 0, 0, 0, 0, 0};
 unsigned int prev_result[6] = {0, 0, 0, 0, 0, 0};
 unsigned int  temp_laser_result = 0;
 
-int stage = -1; //5; //-1;
+int stage = 5; //-1; //5; //-1;
 int prev_stage = 0;
 int laser_stage = 0;
 int prev_laser_stage = 0;
@@ -1499,66 +1499,81 @@ bool dojoGame()
 
   if (inStrCompleteInterSerial1)
   {
-
-     if  (inStrInterSerial1 == startGameA )
+ debugSerial.print("String is: ");
+ int arg1= inStrInterSerial1.indexOf(startGameA);
+ int arg2= inStrInterSerial1.indexOf(startGameB);
+ int arg3= inStrInterSerial1.indexOf(startGameC);
+  debugSerial.print(arg1); debugSerial.print(" ");
+  debugSerial.print(arg2);debugSerial.print(" ");
+  debugSerial.print(arg3);debugSerial.print(" ");
+  
+ debugSerial.println(inStrInterSerial1);
+    
+     if  ( inStrInterSerial1.indexOf("STARTA")!=-1 )
     {
       debugSerial.println("Starting Game A");
       startedGameA = true;
-    }
+    }else
     
-    if  (inStrInterSerial1 == startGameB )
+    if  ( inStrInterSerial1.indexOf("STARTB")!=-1)
     {
       debugSerial.println("Starting Game B");
       startedGameB = true;
     }
-    if  (inStrInterSerial1 == startGameC)
+    
+    if  ( inStrInterSerial1.indexOf("STARTC")!=-1)
     {
       debugSerial.println("Starting Game C");
       startedGameC = true;
     }
 
+   
 
-    if (inStrInterSerial1.startsWith(stopGameA))
+
+    if (inStrInterSerial1.indexOf(stopGameA)!=-1)
     {
+       int indexA= inStrInterSerial1.indexOf(stopGameA);
       if (startedGameA == true)
       {
         startedGameA = false;
         debugSerial.print("Stopping Game A. ");
         debugSerial.print("Result is: ");
-        debugSerial.println(inStrInterSerial1.substring(6).toInt());
+        debugSerial.println(inStrInterSerial1.substring(indexA+6).toInt());
 
-        if (inStrInterSerial1.substring(6).toInt() > MIN_HIT_GAME)
-          result[HIT_GAME] = inStrInterSerial1.substring(6).toInt();
+        if (inStrInterSerial1.substring(indexA+6).toInt() > MIN_HIT_GAME)
+          result[HIT_GAME] = inStrInterSerial1.substring(indexA+6).toInt();
 
       }
     }
 
-    if (inStrInterSerial1.startsWith(stopGameB))
+    if (inStrInterSerial1.indexOf(stopGameB)!=-1)
     {
+      int indexB= inStrInterSerial1.indexOf(stopGameB);
       if (startedGameB == true)
       {
         startedGameB = false;
         debugSerial.print("Stopping Game B. ");
         debugSerial.print("Result is: ");
-        debugSerial.println(inStrInterSerial1.substring(6).toInt());
+        debugSerial.println(inStrInterSerial1.substring(indexB+6).toInt());
 
-        if (inStrInterSerial1.substring(6).toInt() > MIN_STEPS_GAME)
-          result[STEPS_GAME] = inStrInterSerial1.substring(6).toInt();
+        if (inStrInterSerial1.substring(indexB+6).toInt() > MIN_STEPS_GAME)
+          result[STEPS_GAME] = inStrInterSerial1.substring(indexB+6).toInt();
 
       }
     }
 
-    if (inStrInterSerial1.startsWith(stopGameC))
+    if (inStrInterSerial1.indexOf(stopGameC)!=-1)
     {
+       int indexC= inStrInterSerial1.indexOf(stopGameC);
       if (startedGameC == true)
       {
         startedGameC = false;
         debugSerial.print("Stopping Game C. ");
         debugSerial.print("Result is: ");
-        debugSerial.println(inStrInterSerial1.substring(6).toInt());
+        debugSerial.println(inStrInterSerial1.substring(indexC+6).toInt());
 
-        if (inStrInterSerial1.substring(6).toInt() > MIN_PANDA_GAME)
-          result[PANDA_GAME] =  inStrInterSerial1.substring(6).toInt();
+        if (inStrInterSerial1.substring(indexC+6).toInt() > MIN_PANDA_GAME)
+          result[PANDA_GAME] =  inStrInterSerial1.substring(indexC+6).toInt();
 
       }
     }
@@ -1681,6 +1696,7 @@ void serialEvent2() //interSerial1    Puzzle A and puzzle B
     {
       if (inStrInterSerial1.length() > 0)
       {
+        interSerial1.flush();
         inStrCompleteInterSerial1 = true;
         break;
       }
