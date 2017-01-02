@@ -9,6 +9,8 @@ Chrono mainTimer(Chrono::SECONDS ); //60min timer
 Chrono puzzle1Timer(Chrono::SECONDS ); //20min timer
 Chrono puzzle1PenaltyTimer(Chrono::SECONDS ); //1min penalty timer
 
+Chrono introTimer(Chrono::SECONDS ); //intro timeout timer
+
 Chrono walkOutTimer(Chrono::SECONDS );  //5 min
 
 Chrono pistolsTimer(Chrono::SECONDS); //2Min
@@ -35,6 +37,7 @@ SoftwareSerial SoftSerial2(2, 3); // RX, TX
 #define InterConnect2dir_pin 6
 #define InterConnect3dir_pin 5
 
+#define INTRO_CLIP_TIME 84  //seconds
 
 /////////RELAYS/////////////
 #define RELAY_PIN1 A15
@@ -130,6 +133,8 @@ char startGameC[] = "STARTC";  //6002705323
 String stopGameA = "STOPA"; //"6002705323
 String stopGameB = "STOPB"; //6002705323
 String stopGameC = "STOPC";  //6002705323
+
+bool game_started=false;
 
 bool startedGameA = false;
 bool startedGameB = false;
@@ -394,7 +399,7 @@ void loop()
       break;
 
     case 0:
-      mainTimer.restart();
+      mainTimer.stop();
       changeMusic(0);
       enButtonStart(1);
       disButtonStart(2);
@@ -408,27 +413,39 @@ void loop()
       lockDoor(1);
       lockDoor(2);
       lockDoor(3);
+      game_started=false;
       stage = 1;
-      break;
+
+    break;
 
     case 1:
+
+    if(false == game_started)
+    {
       if (digitalRead(MAIN_BUTTON_PIN1) == PRESSED)
       { delay(10);
         if (digitalRead(MAIN_BUTTON_PIN1) == PRESSED)
         {
-        //lockDoor(1); //lock after game starts
-        rpiSerial.print(START_RPI_CMD);
-        result[PUZZLE_GAME] = MAX_PUZZLE_GAME; //Start with max points
+          rpiSerial.print(START_RPI_CMD);
+          result[PUZZLE_GAME] = MAX_PUZZLE_GAME; //Start PUZZLE 1 with max points
+          puzzle1Timer.restart();
+          debugSerial.println("Game Started");
+          mainTimer.restart();
+          introTimer.restart();
+          game_started=true;
+        }
+      }
+    }
 
-        turnOnLights(1);   //Turn Lights ON
-        puzzle1Timer.restart();
-        debugSerial.println("Game Started");
-
-        stage = 2;
+      if (introTimer.hasPassed(INTRO_CLIP_TIME) && (true == game_started))
+      {
+        game_started=false;
         changeMusic(1);
+        turnOnLights(1);   //Turn Lights ON
+        introTimer.restart();
+        stage = 2;
       }
-      }
-      break;
+    break;
 
     case 2:
 
@@ -1671,12 +1688,17 @@ void gameTimer60()
       turnOffLights(3);
       turnOffLights(4);
 
-      stage = 0; // Stage .. 0
-      mainTimer.restart();      // Restart the chronometer.
       debugSerial.println("60 min are over...");
       rpiSerial.print(FAIL_RPI_CMD);
+
+    }
+
+    if (mainTimer.hasPassed(60 * 62)) //2 minutes later reset the game
+    {
+      mainTimer.restart();      // Restart the chronometer.
       stage = -1;
     }
+
   }
 }
 
